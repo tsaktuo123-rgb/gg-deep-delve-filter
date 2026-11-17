@@ -545,7 +545,12 @@ def start_hotkeys(on_f9, on_f10, on_f8):
 
 
 def run_watch(env):
-    token, _ = require_token(env)
+    token = env.get('PD2_AUTH_TOKEN', '')
+    stash_enabled = bool(token)
+    if not stash_enabled:
+        print('! no PD2_AUTH_TOKEN in .env - stash/inventory pricing is OFF for now.')
+        print('  The hotkeys still work: F8 link+reload, F9 sync+reload, F10 price check.')
+        print('  Add PD2_AUTH_TOKEN to .env later (README section 2) to enable the stash.')
     state = {'items': [], 'token_expired': False}
     paused = False
 
@@ -569,24 +574,28 @@ def run_watch(env):
                            timeout=300)
         except Exception as e:                              # noqa: BLE001
             print('  economy sync failed: %r' % e)
-        try:
-            state = scan_once(token, env)
-            paused = False
-            total = sum(i.get('hr') or 0 for i in state['items'])
-            print('  synced: %d new items, %.2f HR' % (len(state['items']), total))
+        if stash_enabled:
+            try:
+                state = scan_once(token, env)
+                paused = False
+                total = sum(i.get('hr') or 0 for i in state['items'])
+                print('  synced: %d new items, %.2f HR' % (len(state['items']), total))
+                chime()
+                toast('GG DEEP DELVE - Synced', ['New: %d items' % len(state['items']),
+                                                 'reloading filter in game...'])
+                g = detect_game_dir()
+                if g:
+                    send_reload(g.parent)
+            except TokenExpired as e:
+                paused = True
+                state['token_expired'] = True
+                write_dashboard(state)
+                print('  TOKEN EXPIRED — Refresh PD2_AUTH_TOKEN in .env (%s)' % e)
+            except Exception as e:                          # noqa: BLE001
+                print('  sync failed: %r' % e)
+        else:
             chime()
-            toast('GG DEEP DELVE - Synced', ['New: %d items' % len(state['items']),
-                                             'reloading filter in game...'])
-            g = detect_game_dir()
-            if g:
-                send_reload(g.parent)
-        except TokenExpired as e:
-            paused = True
-            state['token_expired'] = True
-            write_dashboard(state)
-            print('  TOKEN EXPIRED — Refresh PD2_AUTH_TOKEN in .env (%s)' % e)
-        except Exception as e:                              # noqa: BLE001
-            print('  sync failed: %r' % e)
+            print('  (stash pricing skipped - no token; economy sync ran)')
 
     def hot_price_check():
         print('[F10] clipboard price check...')
@@ -619,6 +628,9 @@ def run_watch(env):
             time.sleep(IDLE_CHECK_SECONDS)
             continue
         try:
+            if not stash_enabled:
+                time.sleep(POLL_SECONDS)
+                continue
             state = scan_once(token, env)
         except TokenExpired as e:
             paused = True
