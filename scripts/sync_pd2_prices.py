@@ -137,6 +137,114 @@ def name_key(nm):
     return re.sub(r'[^a-z0-9]', '', (nm or '').lower())
 
 
+# corruption name (pd2trader, normalized) -> STAT360 id; None = skip (unmapped)
+# STAT360 ids verified against wiki.projectdiablo2.com/wiki/Item_Filtering
+CORRUPTION_STAT360 = [
+    (('physical damage taken reduced',), 46),
+    (('magic damage taken reduced',), 47),
+    (('all maximum resistances', 'to maximum cold resist, to maximum fire'), 87),
+    (('max fire resist',), 53),
+    (('max cold resist',), 54),
+    (('max lightning resist',), 55),
+    (('max poison resist',), 56),
+    (('all resist, cold resist',), 51),
+    (('increased attack speed',), 20),
+    (('faster run/walk', 'faster run walk'), 44),
+    (('replenish life',), 34),
+    (('faster hit recovery',), 35),
+    (('better chance of getting magic items',), 7),
+    (('chance to pierce', 'piercing attack'), 63),
+    (('cannot be frozen',), 45),
+    (('crushing blow',), 21),
+    (('deadly strike',), 19),
+    (('all skills',), 'BY_WEAPON'),
+    (('sockets',), 32),
+    (('enhanced defense',), 33),
+    (('enhanced damage',), 'WEAPON_2'),
+    (('faster cast rate',), 'BY_WEAPON'),
+    (('life leech', 'life stolen per hit'), 57),
+    (('mana leech', 'mana stolen per hit'), 58),
+    (('faster block',), 64),
+    (('all attributes',), 65),
+    (('reduce targets defense', 'reduce target defense'), 66),
+    (('gold find',), 60),
+    (('increase maximum life', 'increased maximum life'), 43),
+    (('cold resist',), 37),
+    (('fire resist',), 36),
+    (('lightning resist',), 38),
+    (('poison resist',), 39),
+    (('strength',), 68),
+    (('dexterity',), 69),
+    (('vitality',), 70),
+    (('energy',), 71),
+    (('life',), 61),
+    (('curse resistance', 'reduced curse duration'), 'BY_SLOT'),
+]
+WEAPON_TYPES = False  # placeholder, replaced below
+NON_WEAPON_TYPES = {'belt', 'helm', 'shield', 'chest', 'tors', 'glov', 'boot', 'boots',
+                    'circ', 'circlet', 'quiver', 'amu', 'rin', 'jew', 'pelt', 'prhm',
+                    'head', 'auric', 'orb'}
+
+def corruption_stat360(corruption_name, type_code):
+    low = (corruption_name or '').lower()
+    for keys, sid in CORRUPTION_STAT360:
+        if any(k in low for k in keys):
+            if sid == 'BY_WEAPON':
+                return 50 if (type_code in NON_WEAPON_TYPES) else 27
+            if sid == 'BY_SLOT':
+                return 62 if type_code in ('boot', 'boots', 'belt', 'rin') else 49
+            return sid
+    return None
+
+CORRUPTION_URL = 'https://pd2trader.com/item-prices/corruption-prices?baseCode=%s&isLadder=true&isHardcore=false&hours=720'
+CORRUPTION_MIN_HR = 0.15      # only fetch corruption pricing for uniques worth checking
+
+def http_json(url, token=None, body=None, timeout=60):
+    headers = {'User-Agent': 'GG-DEEP-DELVE-sync/1.0', 'Accept': 'application/json'}
+    if token:
+        headers['Authorization'] = 'Bearer ' + token
+    data = json.dumps(body).encode() if body is not None else None
+    if data:
+        headers['Content-Type'] = 'application/json'
+    req = urllib.request.Request(url, headers=headers, data=data)
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return r.status, json.load(r)
+
+def fetch_corruption_rules(pd2_code, type_code, sleep_s=0.6):
+    """Top corruption slams by median price -> STAT360-conditional tooltip rules."""
+    d = None
+    for attempt in range(3):
+        try:
+            _, d = http_json(CORRUPTION_URL % pd2_code)
+            break
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt < 2:
+                time.sleep(3 * (attempt + 1))
+                continue
+            print('  corr feed %s -> %d' % (pd2_code, e.code))
+            return []
+        except Exception as e:                               # noqa: BLE001
+            print('  corr feed %s -> %r' % (pd2_code, e))
+            return []
+    rules = []
+    for entry in (d.get('corruptionPrices') or [])[:6]:
+        nm = entry.get('corruptionName') or ''
+        med = entry.get('medianPrice')
+        n = entry.get('sampleCount', 0)
+        if not isinstance(med, (int, float)) or med < 0.05 or n < 20:
+            continue
+        sid = corruption_stat360(nm, type_code or '')
+        if sid is None:
+            continue
+        if isinstance(sid, str):
+            continue
+        rules.append((sid, nm, float(med), n))
+        if len(rules) >= 3:
+            break
+    time.sleep(sleep_s)
+    return rules
+
+
 # codes whose tooltips already have dedicated signature rules in the filter
 LIVE_EXCLUDE = {'uap', 'ci3', 'umc', 'xtb', 'xhb', 'uit', 'cm3', 'amu', 'jew', 'rin',
                 'cm1', 'cm2', 'gsk', 'box'}
@@ -154,7 +262,9 @@ def parse_unid_names(text):
 
 def build_live_price_block(text, name_prices):
     """Generate tooltip rules with live prices for every tracked unique/set that
-    has a unid-rename entry in the filter. Returns (block_text, n_rules)."""
+    has a unid-rename entry in the filter. Corruption rules (STAT360-conditional)
+    are emitted before each code's plain rule so corrupted drops match first.
+    Returns (block_text, n_rules)."""
     unid = parse_unid_names(text)
     rules = []
     skipped = set()
@@ -167,6 +277,13 @@ def build_live_price_block(text, name_prices):
             continue
         quality_group = 'UNI' if kind == 'UNI' else 'SET'
         label = 'Live Est' if kind == 'UNI' else 'Set Live Est'
+        # corruption-specific rules first (a corrupted drop matches these before
+        # the plain rule below, which terminates)
+        for sid, nm, med, n in (p.get('corruptions') or []):
+            rules.append(
+                'ItemDisplay[%s ID %s STAT360=%d]: %%NAME%%{%%NAME%%%%CL%%%%GG_PRICE_HEADER%%'
+                '%%CL%%%%GOLD%%Corrupt (%s): %s HR (%d comps)}'
+                % (quality_group, code, sid, nm[:40], fmt2(med), n))
         rules.append(
             'ItemDisplay[%s ID %s]: %%NAME%%{%%NAME%%%%CL%%%%GG_PRICE_HEADER%%%%CL%%%%GOLD%%%s: %s HR (%d comps)}'
             % (quality_group, code, label, fmt2(p['price']), p['samples']))
@@ -190,6 +307,11 @@ def apply_live_price_block(text, name_prices):
         else:
             return text, 0
     return text, n_rules
+
+def corruption_rules_for_tracked(name_prices, fetch=True):
+    """(retained for reference) per-corruption rules are now generated inline in
+    build_live_price_block via v['corruptions']."""
+    return []
 
 
 def refresh_appraisal_aliases(lines, hours):
@@ -357,7 +479,25 @@ def main():
         samples = it.get('sampleCount', 0)
         price = it.get('movingAverage7Days') or it.get('medianPrice')
         if nm and isinstance(price, (int, float)) and price > 0 and samples >= 3:
-            name_prices[name_key(nm)] = {'name': nm, 'price': float(price), 'samples': samples}
+            name_prices[name_key(nm)] = {'name': nm, 'price': float(price), 'samples': samples,
+                                         'pd2_code': it.get('baseCode'),
+                                         'type_code': it.get('typeCode'),
+                                         'corruptions': []}
+
+    # ---- corruption price feed: per-STAT360 outcomes for uniques worth checking
+    corr_targets = sorted((v for v in name_prices.values()
+                           if v['price'] >= CORRUPTION_MIN_HR and v.get('pd2_code')),
+                          key=lambda v: -v['price'])[:100]
+    if corr_targets:
+        print('corruption price feed: %d uniques (top by value)...' % len(corr_targets))
+        fails = 0
+        for v in corr_targets:
+            got = fetch_corruption_rules(v['pd2_code'], v.get('type_code'))
+            if not got:
+                fails += 1
+            v['corruptions'] = got
+        n_corr = sum(len(v['corruptions']) for v in corr_targets)
+        print('  corruption rules: %d (STAT360-conditional) | feeds failed: %d' % (n_corr, fails))
 
     # ---- appraisal aliases: rare-guide ladders + unique price-check percentiles
     refreshed = refresh_appraisal_aliases(lines, hours)

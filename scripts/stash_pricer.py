@@ -204,30 +204,43 @@ def fetch_stash_items(token, account, base=None):
             'id': str(it.get('id')),
             'raw': it,
         })
-    # currency tab: runes + gems + materials as qty lines
+    # currency/misc/maps/ubers/gems tabs: recursive walk of the ENTIRE currency
+    # dict -> every (path, count) becomes a priced, listable line
     cur = d.get('currency') or {}
-    for code, n in (cur.get('runes') or {}).items():
-        if isinstance(n, int) and n > 0:
-            items.append({'character': 'Currency Tab', 'tab': 'Runes', 'pos': code,
-                          'code': code, 'name': code, 'base_name': code, 'quality': 'Currency',
-                          'qty': n, 'id': 'cur-' + code})
-    for tier, gems in (cur.get('gems') or {}).items():
-        for gem, n in (gems or {}).items():
-            if isinstance(n, int) and n > 0:
-                nm = '%s %s' % (tier.capitalize(), gem.capitalize())
-                items.append({'character': 'Currency Tab', 'tab': 'Gems', 'pos': gem,
-                              'code': gem, 'name': nm, 'base_name': nm, 'quality': 'Gem',
-                              'qty': n, 'id': 'gem-%s-%s' % (tier, gem)})
-    for group, label in [('boss', 'Boss Mats'), ('craft', 'Craft Mats'), ('rejuv', 'Rejuvs'),
-                         ('full_rejuv', 'Rejuvs'), ('demonic_cube', 'Mats'), ('jewel_frag', 'Mats')]:
-        val = cur.get(group)
-        if not isinstance(val, dict):
+    # maps (t11-t36 standard tiers) are NOT tracked by pd2trader's valuation -
+    # their codes fuzzy-resolve to runes. Excluded rather than mis-priced.
+    SKIP_CUR = {'rejuv', 'full_rejuv', 'stash_gold', 'version', 'identifier', 'gems', 'maps'}
+    RUNE_NAMES = {'r01': 'El', 'r02': 'Eld', 'r03': 'Tir', 'r04': 'Nef', 'r05': 'Eth',
+                  'r06': 'Ith', 'r07': 'Tal', 'r08': 'Ral', 'r09': 'Ort', 'r10': 'Thul',
+                  'r11': 'Amn', 'r12': 'Sol', 'r13': 'Shael', 'r14': 'Dol', 'r15': 'Hel',
+                  'r16': 'Io', 'r17': 'Lum', 'r18': 'Ko', 'r19': 'Fal', 'r20': 'Lem',
+                  'r21': 'Pul', 'r22': 'Um', 'r23': 'Mal', 'r24': 'Ist', 'r25': 'Gul',
+                  'r26': 'Vex', 'r27': 'Ohm', 'r28': 'Lo', 'r29': 'Sur', 'r30': 'Ber',
+                  'r31': 'Jah', 'r32': 'Cham', 'r33': 'Zod'}
+    DISP = {'wss': 'Worldstone Shard', 'twss': 'Tainted WSS',
+            'puzzlebox': "Larzuk's Puzzlebox", 'puzzlepiece': "Larzuk's Puzzlepiece",
+            'jewel_frag': 'Jewel Fragment', 'demonic_cube': 'Demonic Cube',
+            'token_of_absolution': 'Token of Absolution', 'lilith_mirror': "Lilith's Mirror",
+            'vial_of_lightsong': 'Vial of Lightsong'}
+
+    def walk_currency(node, path, out):
+        if isinstance(node, dict):
+            for k, v in node.items():
+                walk_currency(v, path + [k], out)
+        elif isinstance(node, int) and node > 0:
+            out.append((path, node))
+
+    flat = []
+    walk_currency(cur, [], flat)
+    for path, n in flat:
+        if not path or path[0] in SKIP_CUR:
             continue
-        for code, n in val.items():
-            if isinstance(n, int) and n > 0:
-                items.append({'character': 'Currency Tab', 'tab': label, 'pos': code,
-                              'code': code, 'name': code, 'base_name': code, 'quality': 'Material',
-                              'qty': n, 'id': 'mat-%s-%s' % (group, code)})
+        code = path[-1]
+        tab = path[0].capitalize()
+        disp = DISP.get(code, RUNE_NAMES.get(code, code.replace('_', ' ').title()))
+        items.append({'character': 'Currency Tab', 'tab': tab, 'pos': code,
+                      'code': code, 'name': disp, 'base_name': disp, 'quality': 'Currency',
+                      'qty': n, 'id': 'cur-' + '-'.join(path) + '-%d' % n})
     return items
 
 # ------------------------------------------------------------------ pricing (VERIFIED public endpoints)
@@ -280,7 +293,9 @@ def appraise_rares(rares, hours=None):
 MARKET_LISTING_URL = PD2_API_BASE + '/market/listing'
 
 def get_own_listings(token, user_id):
-    q = {'user_id': user_id, 'type': 'item', 'is_ladder': True, 'is_hardcore': False, '$limit': 100}
+    # verified: user_id + type is the working query; is_ladder/is_hardcore
+    # filters zero out the result (the stored listing docs don't match them)
+    q = {'user_id': user_id, 'type': 'item', '$limit': 100}
     from urllib.parse import urlencode
     url = MARKET_LISTING_URL + '?' + urlencode(q)
     _, d = http_json(url, token=token)
@@ -312,26 +327,54 @@ def delete_listing(token, listing_id):
         print('  delete %s -> %d' % (listing_id, e.code))
         return e.code
 
+def shorten_label(lab):
+    lab = (lab or '').strip()
+    return lab if len(lab) <= 22 else ' '.join(lab.split()[:3])
+
+PRETTY_MODS = {'poisonresist': 'Psn Res', 'item_magicbonus': 'MF',
+               'item_goldbonus': 'Gold', 'item_fastercastrate': 'FCR',
+               'item_fastermovevelocity': 'FRW', 'fres': 'F Res', 'cres': 'C Res',
+               'lres': 'L Res', 'pres': 'P Res', 'maxhp': 'Life', 'maxmana': 'Mana',
+               'item_tohit_percent': 'AR%', 'item_allskills': '+Skills',
+               'allskills': '+Skills', 'item_damagetomana': 'DMG->Mana',
+               'item_lifesteal': 'LL', 'item_manasteal': 'ML', 'item_maxdamage': 'MaxDmg',
+               'item_maxdamage_percent': 'ED', 'strength': 'Str', 'dexterity': 'Dex',
+               'vitality': 'Vit', 'energy': 'Ene', 'all_resist': 'All Res',
+               'item_fastergethitrate': 'FHR', 'item_splashonhit': 'Splash',
+               'item_addclassskills': 'Class Skill', 'item_nonclassskill': 'Skill',
+               'item_replenishlife': 'Rep Life', 'item_indestructible': 'Indestr.',
+               'item_fasterattackrate': 'IAS', 'item_fasterblockrate': 'FBR',
+               'item_damageresist': 'PDR', 'item_normalmissile': 'IM',
+               'item_halffreeze': 'Half Freeze', 'item_stupidity': 'Hit Blinds'}
+
+def shorten_mod(m):
+    """m: dict (stash API shape) or (key, value) tuple (normalized shape)."""
+    if isinstance(m, dict):
+        lab = m.get('label')
+        if lab:
+            return shorten_label(lab)
+        key, val = m.get('name'), (m.get('values') or [0])[0]
+    else:
+        key, val = m[0], m[1]
+    if str(key).lower() in ('corrupted', 'is_corrupted') and not val:
+        return None                                    # corruption pseudo-mod: no info
+    pretty = PRETTY_MODS.get(key, str(key).replace('item_', '').replace('_', ' ').title())
+    return '%s %s' % (pretty, val)
+
 def strict_note(it, obo=True):
-    """The strict listing template: a few words and numbers only.
-    wts <Name> (<top stat>) o.n.o"""
-    name = it.get('name') or it.get('base_name') or ''
-    parts = ['wts', name]
-    if it.get('quality') == 'Rare':
-        mods = sorted(it.get('modifiers', []), key=lambda m: -(m[1] or 0))
-        if mods:
-            key, val = mods[0][0], mods[0][1]
-            pretty = {'poisonresist': 'Psn Res', 'item_magicbonus': 'MF',
-                      'item_goldbonus': 'Gold', 'item_fastercastrate': 'FCR',
-                      'item_fastermovevelocity': 'FRW', 'fres': 'F Res', 'cres': 'C Res',
-                      'lres': 'L Res', 'pres': 'P Res', 'maxhp': 'Life', 'maxmana': 'Mana',
-                      'item_tohit_percent': 'AR%'}.get(key, key.replace('item_', '').replace('_', ' ').title())
-            parts.append('(%s %s)' % (pretty, val))
-    if it.get('ethereal'):
-        parts.append('eth')
-    if obo:
-        parts.append('o.n.o')
-    return ' '.join(parts)
+    """Strict template: bulk -> just the amount ('160x o.b.o.'); singles -> their
+    top stat lines ('ED 23% · Requirements -15% o.b.o.'). No name in the note -
+    the listing card already shows the item."""
+    qty = it.get('qty', 1) or 1
+    tail = ' o.b.o.' if obo else ''
+    if qty > 1:
+        return '%dx%s' % (qty, tail)
+    mods = it.get('modifiers') or []
+    short = [shorten_mod(m) for m in mods[:2]]
+    body = ' \u00b7 '.join(s for s in short if s)
+    if body:
+        return body + tail
+    return 'o.b.o.' if obo else ''
 
 def resolve_user_id(token, listing_id=None):
     """The market derives user_id from the token; read it back from a listing we own."""
@@ -465,49 +508,82 @@ def scan_once(token, env, tab_filter=None, full=False):
     for it in items:
         fp = fingerprint(it)
         prev = seen.get(fp)
-        if prev and isinstance(prev, dict) and prev.get('hr') is not None and not full:
+        if prev and isinstance(prev, dict) and prev.get('hr') is not None \
+                and not prev.get('needs_probe') and not full:
             fresh.append(dict(it, hr=prev.get('hr'), status='cached'))
             continue
         fresh.append(dict(it))
     # ---- pricing
     val_lines = []
     rare_items = []
+    probe_items = []
     for it in fresh:
         q = it.get('quality')
         if q in ('Rare', 'Craft'):
             rare_items.append(it)
-        elif q in ('Gem',):
-            continue                                   # gems have no market - skip fuzz
-        elif q in ('Magic', 'Normal', 'Superior'):
-            continue                                   # base items: live fuzzy matching misleads; show base value only
-        else:
-            nm = it.get('name') or it.get('base_name')  # uniques/sets/runewords by name, runes/mats by code
-            if it.get('runeword') and it.get('name'):
-                nm = it['name']
+        elif q in ('Unique', 'Set', 'Currency', 'Material') or it.get('runeword'):
+            nm = it.get('code') if q == 'Currency' else (it.get('name') or it.get('base_name'))
             val_lines.append({'item': nm, 'qty': it.get('qty', 1), 'it': it})
+        else:
+            probe_items.append(it)                       # magic/normal/superior/gems -> price-check
     dedup = {}
     for l in val_lines:
         dedup.setdefault((l['item'], l.get('qty', 1)), []).append(l['it'])
     priced, _ = valuate_lines([{'item': k[0], 'qty': k[1]} for k in dedup])
-    aps = appraise_rares(rare_items) if rare_items else {}
+    # probe every remaining item with pd2trader's price-check (exact comps:
+    # base + quality + sockets + ethereal), rate-limited, capped per cycle
+    probed = {}
+    PROBE_CAP = 120
+    for it in probe_items[:PROBE_CAP]:
+        try:
+            body = {'item': it.get('code') or it.get('base_name'), 'quality': it.get('quality'),
+                    'sockets': it.get('sockets', 0) or None, 'ethereal': it.get('ethereal') or None,
+                    'isLadder': True, 'isHardcore': False, 'hours': 168}
+            body = {k: v for k, v in body.items() if v not in (None, False, 0)}
+            _, d = http_json(PRICE_CHECK_URL, body=body)
+            e = d.get('estimateHr') or {}
+            probed[it['id']] = (e.get('low'), e.get('mid'), e.get('high'), d.get('confidence'))
+        except Exception:                                   # noqa: BLE001
+            probed[it['id']] = None
+        time.sleep(0.45)
+    if len(probe_items) > PROBE_CAP:
+        print('  probes: %d done this cycle, %d deferred (cap %d)' % (
+            PROBE_CAP, len(probe_items) - PROBE_CAP, PROBE_CAP))
     priced_items = []
+    aps = appraise_rares(rare_items) if rare_items else {}
     for it in fresh:
         it2 = dict(it)
-        if it['quality'] in ('Rare', 'Craft'):
+        q = it['quality']
+        if q in ('Rare', 'Craft'):
             ap = aps.get(it['id']) or {}
             band = ap.get('band') or ap.get('priceBand') or {}
             hr = band.get('mid') or band.get('high') or band.get('low')
             it2['verdict'] = ap.get('verdict')
             it2['appraisal'] = ap
-        else:
-            nm = it.get('name') or it.get('base_name')
-            hr, conf, why = priced.get(nm, (None, None, None))
+            it2['hr'] = hr if isinstance(hr, (int, float)) else 0
+        elif it['id'] in probed:
+            p = probed[it['id']]
+            if p:
+                it2['low'], it2['hr'], it2['high'], it2['confidence'] = p
+            else:
+                it2['hr'], it2['needs_probe'] = 0, True
+        elif q in ('Unique', 'Set', 'Currency', 'Material') or it.get('runeword'):
+            # currency items price by their API code (lowercase, e.g. r27/wss/t31);
+            # display names must NEVER be the valuation input (fuzzy-match hazard)
+            if q == 'Currency':
+                nm = it.get('code')
+            else:
+                nm = it.get('name') or it.get('base_name')
+            hr, conf = priced.get(nm, (None, None))[:2]
             it2['confidence'] = conf
-        it2['hr'] = hr if isinstance(hr, (int, float)) else 0
+            it2['hr'] = hr if isinstance(hr, (int, float)) else 0
+        else:
+            it2['hr'], it2['needs_probe'] = 0, True           # deferred past the probe cap
         priced_items.append(it2)
     # cache
     for it in priced_items:
         seen[fingerprint(it)] = {'name': it.get('name'), 'hr': it.get('hr'),
+                                 'needs_probe': bool(it.get('needs_probe')),
                                  'ts': datetime.now(timezone.utc).isoformat()}
     cache['items'] = seen
     cache['last_scan'] = datetime.now(timezone.utc).isoformat()
@@ -826,11 +902,7 @@ def discover(state, env, out_path=None):
         if not key_stats and it.get('modifiers'):
             mods = sorted(it['modifiers'], key=lambda m: -(m[1] or 0))[:2]
             key_stats = ['%s %s' % (v, k) for k, v in mods]
-        note = 'wts %s' % it.get('name', '')
-        if key_stats:
-            note += ' (%s)' % ', '.join(key_stats[:2])
-        if it.get('ethereal'):
-            note += ' eth'
+        note = strict_note(it, obo=True)
         if ask:
             note += ' // %s' % price_str(ask)
         rows.append({'standing': standing, 'ask': ask or 0, 'stars': stars,
@@ -876,94 +948,129 @@ def discover(state, env, out_path=None):
     return rows
 
 
-def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_delist=True):
-    """Drain the listing queue via the verified market API: post GG items not yet
-    listed (rate-limited, session-capped), delist anything whose stash entry vanished.
-    Verified live 2026-11-17: POST /market/listing -> 201, server derives user_id
-    from the token (body shape from pd2trader's own client)."""
+def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_delist=True,
+                 target_n=45, max_actions=15):
+    """Maintain the market at the TOP N listings by live value (the PD2 market
+    caps at 50 active listings; we hold 45 in rotation). Deep-ranked rows are
+    diffed against the live listings: delist what fell out of the top N or left
+    the stash, post what entered it. Rate-limited, action-capped per session."""
     token = env.get('PD2_AUTH_TOKEN', '')
     account = env.get('PD2_ACCOUNT_NAME', '').lower()
     cache = json.loads(CACHE.read_text(encoding='utf-8')) if CACHE.exists() else {}
     listings = cache.setdefault('listings', {})
     stash_ids = {r['item']['id'] for r in rows if r['item'].get('id')}
 
-    user_id = cache.get('user_id') or resolve_user_id(token, listings.get('_bootstrap_listing_id'))
+    user_id = cache.get('user_id')
     own = {}
     if user_id:
-        try:
-            for l in get_own_listings(token, user_id):
-                iid = str(((l.get('item') or {}).get('id')))
-                if iid and iid != 'None':
-                    own[iid] = l.get('_id')
-        except Exception as e:                              # noqa: BLE001
-            print('  own-listings fetch failed: %r' % e)
-
-    posted, delisted, already = [], [], len(own)
-    for r in rows:
-        it = r['item']
-        iid = str(it.get('id'))
-        if not iid or iid in own:
-            continue
-        if r['standing'] == 'GG' or (include_check and r['standing'] == 'CHECK'):
-            raw = it.get('raw')
-            if not raw:
-                b = {'id': it.get('code'), 'category': 'misc',
-                     'codes': {'normal': it.get('code')}, 'name': it.get('name'),
-                     'type': 'Rune' if str(it.get('code', '')).startswith('r') else 'Material',
-                     'type_code': str(it.get('code', '')),
-                     'size': {'height': 1, 'width': 1}, 'requirements': {}}
-                raw = {'base': b, 'quality': {'id': 1, 'name': 'Normal'},
-                       'is_identified': True, 'is_ethereal': False, 'is_runeword': False,
-                       'socketed_count': 0, 'item_level': 1, 'id': iid,
-                       'location': {'storage': 'Shared Stash', 'stash_page': 0}}
-            note = strict_note(it, obo=obo)
+        for attempt in range(2):
             try:
-                listing = post_listing(token, raw, account, round(r['ask'], 2), note)
-                lid = (listing or {}).get('_id') or (listing or {}).get('id')
-                if lid:
-                    listings[iid] = {'listing_id': lid, 'status': 'posted',
-                                     'name': it.get('name'), 'ask': r['ask'],
-                                     'ts': datetime.now(timezone.utc).isoformat()}
-                    if (listing or {}).get('user_id') and not user_id:
-                        user_id = listing['user_id']
-                        cache['user_id'] = user_id
-                    posted.append((it.get('name'), r['ask'], note))
-                    print('  [POSTED] %-28s %-9s %s' % ((it.get('name') or '')[:28], r['price_str'], note))
-                else:
-                    print('  [FAILED] %s: unexpected response' % (it.get('name'),))
-            except urllib.error.HTTPError as e:
-                detail = e.read()[:120].decode('utf-8', 'replace')
-                print('  [FAILED] %s -> %d %s' % (it.get('name'), e.code, detail))
-                if e.code in (401, 403):
+                for l in get_own_listings(token, user_id):
+                    iid = str(((l.get('item') or {}).get('id')))
+                    if iid and iid != 'None':
+                        own[iid] = l.get('_id')
+                if own:
                     break
-            except Exception as e:                          # noqa: BLE001
-                print('  [FAILED] %s: %r' % (it.get('name'), e))
-            time.sleep(2)
-            if len(posted) >= max_posts:
-                print('  session cap (%d) reached' % max_posts)
-                break
-    if do_delist:
+                time.sleep(3)                           # empty once: retry before trusting it
+            except Exception as e:                      # noqa: BLE001
+                print('  own-listings fetch failed: %r' % e)
+                time.sleep(3)
+        if not own and attempt:
+            print('  ! own-listings lookup returned empty twice - refusing to post (duplicate risk)')
+            return [], []
+
+    # the rotation: top N by live ask, listable (raw stash object or synthetic)
+    ranked = [r for r in rows if r['ask'] > 0 and r['item'].get('id')
+              and (r['item'].get('raw') or r['item'].get('quality') == 'Currency')]
+    ranked.sort(key=lambda r: -r['ask'])
+    target = ranked[:target_n]
+    target_ids = [r['item']['id'] for r in target]
+
+    posted, delisted, kept = [], [], 0
+    actions = 0
+
+    def note_for(r):
+        it = r['item']
+        if obo or True:
+            return strict_note(it, obo=obo)
+        return 'wts %s' % it.get('name', '')
+
+    # 1. delist: listings whose item left the stash OR fell out of the top N
+    if do_delist and user_id:
+        for iid, lid in list(own.items()):
+            if iid not in stash_ids or iid not in target_ids:
+                if actions >= max_actions:
+                    print('  action cap (%d) reached mid-delist' % max_actions)
+                    break
+                st = delete_listing(token, lid)
+                actions += 1
+                if st in (200, 204):
+                    nm = listings.get(iid, {}).get('name', iid)
+                    delisted.append(nm)
+                    listings[iid] = listings.get(iid) or {}
+                    listings[iid]['status'] = 'delisted'
+                    print('  [DELISTED] %s (out of top %d or gone from stash)' % (nm, target_n))
+                else:
+                    print('  [delist failed] %s -> %s' % (iid, st))
+                time.sleep(2.5)
+
+    # 2. post: target items not yet listed
+    own = {str(iid): lid for iid, lid in own.items() if iid in target_ids}
+    for r in target:
+        iid = str(r['item']['id'])
+        if iid in own:
+            kept += 1
+            continue
+        if actions >= max_actions:
+            print('  action cap (%d) reached mid-post' % max_actions)
+            break
+        it = r['item']
+        raw = it.get('raw')
+        if not raw:
+            b = {'id': it.get('code'), 'category': 'misc',
+                 'codes': {'normal': it.get('code')}, 'name': it.get('name'),
+                 'type': 'Rune' if str(it.get('code', '')).startswith('r') else 'Material',
+                 'type_code': str(it.get('code', '')),
+                 'size': {'height': 1, 'width': 1}, 'requirements': {}}
+            raw = {'base': b, 'quality': {'id': 1, 'name': 'Normal'},
+                   'is_identified': True, 'is_ethereal': False, 'is_runeword': False,
+                   'socketed_count': 0, 'item_level': 1, 'id': iid,
+                   'location': {'storage': 'Shared Stash', 'stash_page': 0}}
+        note = strict_note(it, obo=obo)
         try:
-            for l in get_own_listings(token, user_id) if user_id else []:
-                iid = str(((l.get('item') or {}).get('id')))
-                if iid and iid not in stash_ids:
-                    st = delete_listing(token, l.get('_id'))
-                    if st in (200, 204):
-                        listings[iid] = listings.get(iid) or {}
-                        listings[iid]['status'] = 'delisted'
-                        nm = (l.get('item') or {}).get('name')
-                        delisted.append(nm)
-                        print('  [DELISTED] %s (gone from stash)' % nm)
-                    time.sleep(1)
+            listing = post_listing(token, raw, account, round(r['ask'], 2), note)
+            lid = (listing or {}).get('_id') or (listing or {}).get('id')
+            if lid:
+                listings[iid] = {'listing_id': lid, 'status': 'posted',
+                                 'name': it.get('name'), 'ask': r['ask'],
+                                 'ts': datetime.now(timezone.utc).isoformat()}
+                if (listing or {}).get('user_id') and not user_id:
+                    user_id = listing['user_id']
+                    cache['user_id'] = user_id
+                posted.append((it.get('name'), r['ask'], note))
+                print('  [POSTED] %-28s %-9s %s' % ((it.get('name') or '')[:28], r['price_str'], note))
+            else:
+                print('  [FAILED] %s: unexpected response' % (it.get('name'),))
+        except urllib.error.HTTPError as e:
+            detail = e.read()[:120].decode('utf-8', 'replace')
+            print('  [FAILED] %s -> %d %s' % (it.get('name'), e.code, detail))
+            if e.code in (401, 403):
+                break
         except Exception as e:                              # noqa: BLE001
-            print('  delist sweep failed: %r' % e)
+            print('  [FAILED] %s: %r' % (it.get('name'), e))
+        actions += 1
+        time.sleep(2.5)
+
     cache['listings'] = listings
+    if user_id:
+        cache['user_id'] = user_id
     CACHE.write_text(json.dumps(cache, indent=1), encoding='utf-8')
-    print('queue: %d posted, %d delisted, %d already listed' % (len(posted), len(delisted), already))
+    print('rotation: %d posted, %d delisted, %d kept | target top %d' % (
+        len(posted), len(delisted), kept, target_n))
     return posted, delisted
 
 def run_once(env, tab_filter=None, full=False, discover_mode=False, do_post=False,
-             max_posts=10, include_check=False):
+             max_posts=10, include_check=False, max_actions=15):
     token = env.get('PD2_AUTH_TOKEN', '')
     if not token:
         print('no token: run  python scripts/stash_pricer.py --import-token')
@@ -986,7 +1093,8 @@ def run_once(env, tab_filter=None, full=False, discover_mode=False, do_post=Fals
         rows = discover(state, env)
     update_filter_status(env, state, rows)
     if do_post:
-        run_autolist(env, rows, max_posts=max_posts, include_check=include_check)
+        run_autolist(env, rows, max_posts=max_posts, include_check=include_check,
+                     max_actions=max_actions)
     return 0
 
 def run_watch(env):
@@ -1088,6 +1196,7 @@ def main():
                     help='with --once --discover: AUTO-LIST GG items on the PD2 market and '
                          'auto-delist anything gone from the stash (uses your token; rate-limited)')
     ap.add_argument('--max-posts', type=int, default=10, help='session cap for --post (default 10)')
+    ap.add_argument('--max-actions', type=int, default=15, help='session cap for --post actions (default 15)')
     ap.add_argument('--list-check', action='store_true', help='with --post: also list CHECK-standing items')
     ap.add_argument('--tab', metavar='TEXT', help='with --once: price only tabs/items matching TEXT')
     ap.add_argument('--full', action='store_true', help='with --once: re-price everything (ignore cache)')
@@ -1113,7 +1222,8 @@ def main():
         return run_watch(env)
     if args.once:
         return run_once(env, tab_filter=args.tab, full=args.full, discover_mode=args.discover,
-                        do_post=args.post, max_posts=args.max_posts, include_check=args.list_check)
+                        do_post=args.post, max_posts=args.max_posts, include_check=args.list_check,
+                        max_actions=args.max_actions)
     if args.check:
         res = appraise_clipboard()
         return 0 if res else 1
