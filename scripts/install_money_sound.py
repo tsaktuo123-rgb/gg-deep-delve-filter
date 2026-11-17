@@ -4,47 +4,46 @@
 install_money_sound.py - plug-and-play installer for the REAL money sound
 (Cardi B "Money") as the GG DEEP DELVE Tier 3 jackpot audio.
 
-How it works (verified 2026-11-17):
-  PD2's filter engine accepts only numeric %SOUNDID-n% indexes (BH source:
-  ParseSoundID). The game loads sounds from the vanilla archives - the sfx live
-  in <PD2 root>\\d2sfx.mpq (the vanilla install folder, which PD2's launcher
-  never rewrites). This script swaps the sound slot cursor\\hostile.wav
-  (SOUNDID 16 - vanilla index, never played by PvM gameplay) with money.wav
-  using Ladik's MPQ Editor CLI (auto-downloaded to ProjectD2\\MpqFixer\\mpqeditor).
-
-  A loose-file override (data\\global\\sfx\\... next to the exe) was tested and
-  does NOT work in PD2 - the engine reads sfx only from the MPQ chain.
+Verified facts (2026-11-17):
+  - PD2's filter engine accepts only numeric %SOUNDID-n% indexes (BH source:
+    ParseSoundID); a loose-file sfx override was tested and is ignored by PD2.
+  - The game's sound effects live in the vanilla <PD2 root>\\d2sfx.mpq, which
+    PD2's launcher never rewrites (the swap survives game updates).
+  - Slot: cursor\\hostile.wav = SOUNDID 16 (vanilla index, PvM gameplay never
+    plays it). Alternate: cursor\\questdone.wav = SOUNDID 14.
+  - MPQEditor's default compression (`/auto`) wrote a codec D2 cannot read — the
+    game crashed with "file data is corrupt". This script uses **StormLib with
+    explicit ZLIB** (the codec vanilla 1.13 archives use — D2 reads it natively)
+    and verifies the swap byte-for-byte after flushing.
 
 Safety:
   - refuses to run while the game is open (the MPQ is write-locked)
-  - backs up the whole d2sfx.mpq first (d2sfx.mpq.money-bak)
-  - backs up the original hostile.wav (assets\\hostile.wav.original.wav)
-  - verifies the swap by re-extracting and byte-comparing before claiming success
+  - backs up the whole d2sfx.mpq (d2sfx.mpq.money-bak) + the original sound
+  - verifies the swap byte-for-byte after flushing, restores on failure
 
 Usage:
-  python install_money_sound.py                # convert + patch MPQ (game must be closed)
-  python install_money_sound.py --seconds 11   # keep the full clip instead of 8 s
+  python install_money_sound.py                # convert + swap (game closed)
+  python install_money_sound.py --seconds 11   # keep the full clip
   python install_money_sound.py --link-filter  # after .playsound 16 confirms money
   python install_money_sound.py --revert       # filter back to built-in jackpot 4733
-  python install_money_sound.py --restore-slot # put the original hostile.wav back
-
-After patching: in game run ".playsound 16" to hear money, then --link-filter,
-then Numpad 0. Tier 3 jackpot = money.
+  python install_money_sound.py --restore-slot # original hostile.wav back into the MPQ
 
 Exit codes: 0 ok, 1 config/conversion failure, 2 filter edit aborted, 3 game running.
 """
 import argparse
+import ctypes
 import hashlib
+import json
 import os
 import re
 import shutil
 import ssl
 import subprocess
 import sys
-import time
 import urllib.request
 import wave
 import zipfile
+from ctypes import wintypes
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -56,8 +55,12 @@ SOUND_INDEX = '16'
 JACKPOT_FALLBACK = '4733'
 FILTER = Path(r'E:\D2\Diablo II\Diablo II\ProjectD2\filters\local\GG_DEEP_DELVE.filter')
 DEFAULT_SECONDS = 8
-MPQEDITOR_URL = 'https://www.zezula.net/download/mpqeditor_en.zip'
+STORMLIB_RELEASE = 'https://api.github.com/repos/StormLib/StormLib/releases/latest'
 
+MPQ_FILE_REPLACEEXISTING = 0x80000000
+MPQ_COMPRESSION_ZLIB = 2
+
+# ------------------------------------------------------------------ env / paths
 def load_env():
     env = {}
     if ENV_FILE.exists():
@@ -69,7 +72,6 @@ def load_env():
     return env
 
 def game_dirs(env):
-    """(game_root_with_Game_exe, pd2_folder, vanilla_root) for this install."""
     base = Path(env.get('PD2_FILTER_DIR',
                         r'E:\D2\Diablo II\Diablo II\ProjectD2\filters\local'))
     pd2 = base.parents[1]
@@ -88,6 +90,18 @@ def game_running():
     except Exception:                                       # noqa: BLE001
         return False
 
+def locate_d2sfx(env):
+    _, pd2, vanilla = game_dirs(env)
+    for cand in (vanilla / 'd2sfx.mpq', vanilla.parent / 'd2sfx.mpq', pd2 / 'd2sfx.mpq'):
+        if cand.exists():
+            return cand
+    for parent in [*vanilla.parents, vanilla]:
+        c = parent / 'd2sfx.mpq'
+        if c.exists():
+            return c
+    return None
+
+# ------------------------------------------------------------------ audio
 def locate_ffmpeg():
     import shutil as _sh
     exe = _sh.which('ffmpeg')
@@ -130,62 +144,89 @@ def convert(seconds):
     print('converted: %s (mono/22050Hz/16-bit, %.1fs) %s' % (WAV_OUT, dur, 'OK' if ok else 'WRONG FORMAT'))
     return ok
 
-def locate_mpqeditor(pd2):
-    for sub in ('mpqeditor\\x64', 'mpqeditor\\Win32'):
-        exe = pd2 / 'MpqFixer' / sub / 'MPQEditor.exe'
-        if exe.exists():
-            return exe
-    print('downloading Ladik MPQ Editor (author site: zezula.net)...')
-    dst = pd2 / 'MpqFixer' / 'mpqeditor'
+# ------------------------------------------------------------------ StormLib
+def locate_stormlib(pd2):
+    exe = pd2 / 'MpqFixer' / 'stormlib' / 'StormLib.dll'
+    if exe.exists():
+        return exe
+    print('downloading StormLib x64 (github.com/StormLib/StormLib)...')
+    dst = exe.parent
     dst.mkdir(parents=True, exist_ok=True)
-    zpath = dst / 'mpqeditor_en.zip'
-    ctx = ssl.create_default_context()
-    data = None
-    try:
-        data = urllib.request.urlopen(urllib.request.Request(
-            MPQEDITOR_URL, headers={'User-Agent': 'Mozilla/5.0'}), timeout=120, context=ctx).read()
-    except Exception as e:                                  # noqa: BLE001
-        print('  standard fetch failed (%r); retrying with relaxed certificate check' % e)
-        ctx = ssl._create_unverified_context()
-        data = urllib.request.urlopen(urllib.request.Request(
-            MPQEDITOR_URL, headers={'User-Agent': 'Mozilla/5.0'}), timeout=120, context=ctx).read()
+    rel = json.load(urllib.request.urlopen(urllib.request.Request(
+        STORMLIB_RELEASE, headers={'User-Agent': 'x'}), timeout=60))
+    asset = next((a for a in rel['assets'] if 'amd64_RUD' in a['name']
+                  or ('amd64' in a['name'] and 'RUD' in a['name'])), None)
+    if not asset:
+        print('  no amd64 DLL asset in %s' % rel['tag_name'])
+        return None
+    data = urllib.request.urlopen(urllib.request.Request(
+        asset['browser_download_url'], headers={'User-Agent': 'x'}), timeout=180).read()
+    zpath = dst / 'stormlib.zip'
     zpath.write_bytes(data)
     with zipfile.ZipFile(zpath) as z:
         z.extractall(dst)
-    for sub in ('x64', 'Win32'):
-        exe = dst / sub / 'MPQEditor.exe'
-        if exe.exists():
-            return exe
-    return None
-
-def locate_d2sfx(env):
-    _, pd2, vanilla = game_dirs(env)
-    for cand in (vanilla / 'd2sfx.mpq', vanilla.parent / 'd2sfx.mpq', pd2 / 'd2sfx.mpq'):
-        if cand.exists():
-            return cand
-    # last resort: walk up looking for it
-    for parent in [*vanilla.parents, vanilla]:
-        c = parent / 'd2sfx.mpq'
-        if c.exists():
-            return c
+    if exe.exists():
+        return exe
     return None
 
 def sha(p):
     return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 
-def patch_mpq(env):
-    if game_running():
-        print('REFUSED: Game.exe is running (the sound MPQ is write-locked).')
-        print('Close the game, then run this command again.')
-        return 3
-    mpq = locate_d2sfx(env)
-    if not mpq:
-        print('d2sfx.mpq not found next to the install; set PD2_FILTER_DIR in .env')
+def storm_swap(mpq, verify_only=False):
+    """Swap the slot with money.wav via StormLib (zlib) and verify byte-for-byte."""
+    dll = locate_stormlib(game_dirs(load_env())[1])
+    if not dll:
         return 1
-    mpqeditor = locate_mpqeditor(game_dirs(env)[1])
-    if not mpqeditor:
-        print('MPQEditor.exe not found and download failed')
-        return 1
+    storm = ctypes.WinDLL(str(dll))
+    storm.SFileOpenArchive.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
+                                       ctypes.POINTER(wintypes.HANDLE)]
+    storm.SFileOpenFileEx.argtypes = [wintypes.HANDLE, wintypes.LPCWSTR, wintypes.DWORD,
+                                      ctypes.POINTER(wintypes.HANDLE)]
+    storm.SFileReadFile.argtypes = [wintypes.HANDLE, ctypes.c_void_p, wintypes.DWORD,
+                                    ctypes.POINTER(wintypes.DWORD), ctypes.c_void_p]
+    storm.SFileGetFileSize.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+    storm.SFileAddFileEx.argtypes = [wintypes.HANDLE, wintypes.LPCWSTR, wintypes.LPCWSTR,
+                                     wintypes.DWORD, wintypes.DWORD, wintypes.DWORD]
+    storm.SFileAddFileEx.restype = wintypes.BOOL
+    for n in ('SFileOpenArchive', 'SFileOpenFileEx', 'SFileReadFile', 'SFileAddFileEx',
+              'SFileFlushArchive', 'SFileCloseFile', 'SFileCloseArchive'):
+        getattr(storm, n).restype = wintypes.BOOL
+    k32 = ctypes.WinDLL('kernel32')
+
+    def open_arc():
+        h = wintypes.HANDLE()
+        if not storm.SFileOpenArchive(str(mpq), 0, 0, ctypes.byref(h)):
+            print('  open archive FAILED err=%d' % k32.GetLastError())
+            return None
+        return h
+
+    def read_slot(h):
+        fh = wintypes.HANDLE()
+        if not storm.SFileOpenFileEx(h, SOUND_SLOT, 0, ctypes.byref(fh)):
+            return None
+        hi = wintypes.DWORD()
+        size = storm.SFileGetFileSize(fh, ctypes.byref(hi))
+        buf = ctypes.create_string_buffer(size + 1)
+        rd = wintypes.DWORD()
+        if not storm.SFileReadFile(fh, buf, size, ctypes.byref(rd), None):
+            storm.SFileCloseFile(fh)
+            return None
+        storm.SFileCloseFile(fh)
+        return buf.raw[:rd.value]
+
+    if verify_only:
+        h = open_arc()
+        if not h:
+            return 1
+        data = read_slot(h)
+        storm.SFileCloseArchive(h)
+        if data is None:
+            print('  slot unreadable')
+            return 1
+        same = hashlib.sha256(data).hexdigest() == sha(WAV_OUT)
+        print('  slot == money.wav ->', same)
+        return 0 if same else 1
+
     backup = mpq.with_name(mpq.name + '.money-bak')
     if not backup.exists():
         print('backing up the whole archive -> %s' % backup.name)
@@ -193,62 +234,83 @@ def patch_mpq(env):
     work = REPO / 'assets'
     work.mkdir(exist_ok=True)
     orig_out = work / 'hostile.wav.original.wav'
-    def mpe(*args):
-        r = subprocess.run([str(mpqeditor)] + list(args), capture_output=True, text=True, timeout=600)
-        return r.returncode, ((r.stdout or '') + (r.stderr or '')).strip()[:160]
-    tmp = work / '_slot_extract'
-    shutil.rmtree(tmp, ignore_errors=True)
-    tmp.mkdir()
-    rc, out = mpe('extract', str(mpq), SOUND_SLOT, str(tmp) + os.sep, '/fp')
-    got = None
-    for root, _, files in os.walk(tmp):
-        for f in files:
-            got = os.path.join(root, f)
-    if got and sha(got) == sha(WAV_OUT):
-        print('slot already plays money - nothing to do. Use --link-filter if not linked yet.')
-        shutil.rmtree(tmp, ignore_errors=True)
-        return 0
-    if got and not orig_out.exists():
-        shutil.copyfile(got, orig_out)
-        print('original slot sound backed up: %s (%d bytes)' % (orig_out.name, os.path.getsize(got)))
+
+    h = open_arc()
+    if not h:
+        return 1
+    data = read_slot(h)
+    if data is not None:
+        if hashlib.sha256(data).hexdigest() == sha(WAV_OUT):
+            print('slot already plays money - nothing to do (use --link-filter if needed).')
+            storm.SFileCloseArchive(h)
+            return 0
+        if not orig_out.exists():
+            orig_out.write_bytes(data)
+            print('original slot sound backed up: %s (%d bytes)' % (orig_out.name, len(data)))
     else:
-        print('! slot %s not found in %s - aborting (nothing changed)' % (SOUND_SLOT, mpq.name))
+        print('! slot %s unreadable - aborting (nothing changed)' % SOUND_SLOT)
+        storm.SFileCloseArchive(h)
         return 1
-    shutil.rmtree(tmp, ignore_errors=True)
-    rc, out = mpe('add', str(mpq), str(WAV_OUT), SOUND_SLOT, '/auto')
-    if rc != 0:
-        print('add failed (rc=%d) %s' % (rc, out))
+    if not storm.SFileAddFileEx(h, str(WAV_OUT), SOUND_SLOT,
+                                MPQ_FILE_REPLACEEXISTING, MPQ_COMPRESSION_ZLIB, 0):
+        print('  add FAILED err=%d - restoring backup' % k32.GetLastError())
+        storm.SFileCloseArchive(h)
+        shutil.copyfile(backup, mpq)
         return 1
-    rc, out = mpe('flush', str(mpq))
-    if rc != 0:
-        print('flush failed (rc=%d) %s' % (rc, out))
+    if not storm.SFileFlushArchive(h):
+        print('  flush FAILED err=%d - restoring backup' % k32.GetLastError())
+        storm.SFileCloseArchive(h)
+        shutil.copyfile(backup, mpq)
         return 1
-    chk = work / '_slot_verify'
-    shutil.rmtree(chk, ignore_errors=True)
-    chk.mkdir()
-    mpe('extract', str(mpq), SOUND_SLOT, str(chk) + os.sep, '/fp')
-    got = None
-    for root, _, files in os.walk(chk):
-        for f in files:
-            got = os.path.join(root, f)
-    if got:
-        same = sha(got) == sha(WAV_OUT)          # hash BEFORE any cleanup
-        print('verify: extracted slot == money.wav ->', same)
-    else:
-        same = False
-        print('verify: nothing extracted')
-    shutil.rmtree(chk, ignore_errors=True)
-    shutil.rmtree(tmp, ignore_errors=True)
-    if same:
-        print('SWAP VERIFIED: %s in %s now plays money (%d bytes, byte-identical).'
-              % (SOUND_SLOT, mpq.name, os.path.getsize(got)))
-        print('Next: start the game, run ".playsound 16" to hear it, then:')
+    storm.SFileCloseArchive(h)
+
+    h = open_arc()
+    if not h:
+        return 1
+    data = read_slot(h)
+    storm.SFileCloseArchive(h)
+    if data is not None and hashlib.sha256(data).hexdigest() == sha(WAV_OUT):
+        print('SWAP VERIFIED: %s now plays money (%d bytes, byte-identical, zlib).' % (SOUND_SLOT, len(data)))
+        print('Next: start the game, ".playsound 16" to hear it, then:')
         print('  python install_money_sound.py --link-filter   (then Numpad 0 in game)')
         return 0
     print('verification FAILED - restoring archive backup')
     shutil.copyfile(backup, mpq)
     return 1
 
+def restore_slot(env):
+    if game_running():
+        print('REFUSED: close the game first (MPQ is write-locked).')
+        return 3
+    mpq = locate_d2sfx(env)
+    orig = REPO / 'assets' / 'hostile.wav.original.wav'
+    if not mpq.exists() or not orig.exists():
+        print('need %s and %s' % (mpq, orig))
+        return 1
+    dll = locate_stormlib(game_dirs(env)[1])
+    storm = ctypes.WinDLL(str(dll))
+    storm.SFileOpenArchive.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
+                                       ctypes.POINTER(wintypes.HANDLE)]
+    storm.SFileAddFileEx.argtypes = [wintypes.HANDLE, wintypes.LPCWSTR, wintypes.LPCWSTR,
+                                     wintypes.DWORD, wintypes.DWORD, wintypes.DWORD]
+    storm.SFileAddFileEx.restype = wintypes.BOOL
+    storm.SFileFlushArchive.argtypes = [wintypes.HANDLE]
+    storm.SFileFlushArchive.restype = wintypes.BOOL
+    storm.SFileCloseArchive.argtypes = [wintypes.HANDLE]
+    storm.SFileCloseArchive.restype = wintypes.BOOL
+    h = wintypes.HANDLE()
+    if not storm.SFileOpenArchive(str(mpq), 0, 0, ctypes.byref(h)):
+        print('open failed err=%d' % ctypes.GetLastError())
+        return 1
+    ok = storm.SFileAddFileEx(h, str(orig), SOUND_SLOT, MPQ_FILE_REPLACEEXISTING,
+                              MPQ_COMPRESSION_ZLIB, 0)
+    storm.SFileFlushArchive(h)
+    storm.SFileCloseArchive(h)
+    print('original slot restored (zlib)' if ok else 'restore FAILED')
+    print('run --revert to put the filter back on the built-in jackpot sound')
+    return 0 if ok else 1
+
+# ------------------------------------------------------------------ filter link
 def link_filter():
     if not FILTER.exists():
         print('filter not found: %s' % FILTER)
@@ -271,7 +333,11 @@ def link_filter():
         return 2
     shutil.copyfile(FILTER, FILTER.with_suffix('.filter.money-bak'))
     FILTER.write_text(new_text, encoding='utf-8', newline='\n')
-    print('GG_TIER3_FX: SOUNDID-%s -> SOUNDID-%s (backup: *.money-bak)' % (current, SOUND_INDEX))
+    loot = FILTER.parent.parent / 'loot.filter'
+    if loot.exists() and 'GG DEEP DELVE price engine' in loot.read_text(encoding='utf-8', errors='replace'):
+        shutil.copyfile(FILTER, loot)
+        print('loot.filter synced too (Numpad 0 will load it).')
+    print('GG_TIER3_FX: SOUNDID-%s -> SOUNDID-%s (backups: *.money-bak)' % (current, SOUND_INDEX))
     print('Press Numpad 0 in game (or F8) to reload.')
     return 0
 
@@ -286,27 +352,13 @@ def revert():
         return 2
     shutil.copyfile(FILTER, FILTER.with_suffix('.filter.money-bak'))
     FILTER.write_text(new_text, encoding='utf-8', newline='\n')
+    loot = FILTER.parent.parent / 'loot.filter'
+    if loot.exists() and 'GG DEEP DELVE price engine' in loot.read_text(encoding='utf-8', errors='replace'):
+        shutil.copyfile(FILTER, loot)
     print('reverted GG_TIER3_FX to the built-in jackpot SOUNDID-%s' % JACKPOT_FALLBACK)
     return 0
 
-def restore_slot(env):
-    if game_running():
-        print('REFUSED: close the game first (MPQ is write-locked).')
-        return 3
-    mpq = locate_d2sfx(env)
-    orig = REPO / 'assets' / 'hostile.wav.original.wav'
-    if not mpq.exists() or not orig.exists():
-        print('need %s and %s' % (mpq, orig))
-        return 1
-    mpqeditor = locate_mpqeditor(game_dirs(env)[1])
-    r = subprocess.run([str(mpqeditor), 'add', str(mpq), str(orig), SOUND_SLOT, '/auto'],
-                       capture_output=True, text=True, timeout=600)
-    r2 = subprocess.run([str(mpqeditor), 'flush', str(mpq)], capture_output=True, text=True, timeout=600)
-    ok = r.returncode == 0 and r2.returncode == 0
-    print('slot restored' if ok else 'restore failed (%s %s)' % (r.returncode, r2.returncode))
-    print('run --revert to put the filter back on the built-in jackpot sound')
-    return 0 if ok else 1
-
+# ------------------------------------------------------------------ main
 def main():
     env = load_env()
     ap = argparse.ArgumentParser(description=__doc__)
@@ -315,6 +367,7 @@ def main():
     ap.add_argument('--revert', action='store_true')
     ap.add_argument('--restore-slot', action='store_true')
     ap.add_argument('--skip-convert', action='store_true')
+    ap.add_argument('--verify', action='store_true', help='only re-verify the slot')
     args = ap.parse_args()
     if args.revert:
         return revert()
@@ -322,10 +375,18 @@ def main():
         return link_filter()
     if args.restore_slot:
         return restore_slot(env)
+    if args.verify:
+        if game_running():
+            print('verification works any time (read-only), game open is fine.')
+        return storm_swap(locate_d2sfx(env), verify_only=True)
     if not args.skip_convert:
         if not convert(args.seconds):
             return 1
-    return patch_mpq(env)
+    if game_running():
+        print('REFUSED: Game.exe is running (the sound MPQ is write-locked).')
+        print('Close the game, then run this command again.')
+        return 3
+    return storm_swap(locate_d2sfx(env))
 
 if __name__ == '__main__':
     sys.exit(main())

@@ -53,20 +53,23 @@ It converts `assets\money.mp3` to the exact format D2 requires (mono, 22050 Hz,
 auto-installs a bundled ffmpeg via pip if needed), locates `d2sfx.mpq` in the vanilla
 install folder (which PD2's launcher never rewrites — the swap survives game
 updates), backs up the whole archive plus the original sound, swaps the slot with
-Ladik's MPQ Editor CLI (auto-downloaded to `ProjectD2\MpqFixer\mpqeditor`), and
-**verifies the swap byte-for-byte before claiming success**.
+**StormLib and explicit ZLIB compression** (an early MPQEditor-CLI attempt used a
+codec D2 cannot read and crashed the game — that is why the codec is now forced),
+and **verifies the swap byte-for-byte after flushing**.
 
 Then, in game:
 
 1. `.playsound 16` → hear money.
 2. `python scripts\install_money_sound.py --link-filter` — switches the Tier-3
-   jackpot from the built-in `%SOUNDID-4733%` to `%SOUNDID-16%` (backup made).
+   jackpot from the built-in `%SOUNDID-4733%` to `%SOUNDID-16%` (backup made,
+   `loot.filter` synced).
 3. **Numpad 0** (or F8) → Tier 3 jackpot = money.
 
 Undo any time: `--revert` puts the filter back on the built-in jackpot sound;
-`--restore-slot` puts the original `hostile.wav` back into the archive. If a game
-update ever re-verifies the vanilla MPQs, re-run the installer once. Alternate slot
-if you prefer: `cursor\questdone.wav` = SOUNDID **14**.
+`--restore-slot` puts the original `hostile.wav` back into the archive;
+`d2sfx.mpq.money-bak` is a full archive copy. If a game update ever re-verifies the
+vanilla MPQs, re-run the installer once. Alternate slot if you prefer:
+`cursor\questdone.wav` = SOUNDID **14**.
 
 ### 1.3 Python tooling — three scripts, one folder
 
