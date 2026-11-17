@@ -1,0 +1,3 @@
+# GG DEEP DELVE - Python dependencies
+# stdlib covers everything except global hotkeys:
+keyboard>=0.13.5

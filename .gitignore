@@ -1,0 +1,19 @@
+# secrets - never commit
+.env
+*.token
+
+# runtime state / caches
+stash_cache.json
+stash_prices.html
+stash_prices.md
+__pycache__/
+*.pyc
+
+# backups of the live filter (E: drive originals stay in place)
+*.bak
+*.sync-bak
+*.pre-part1.filter
+
+# OS junk
+Thumbs.db
+.DS_Store
