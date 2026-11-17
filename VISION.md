@@ -76,3 +76,5 @@ Template: `| date | idea | why it helps (QoL) | status |`
 | 2026-11-17 | `--check` (F10) falls back to text-format item parse when the clipboard is the older PD2 format | F10 keeps working across client versions | proposed |
 | 2026-11-17 | Season migration helper: one command carries all GG value aliases + tier engine into the next season's fresh Hiim filter | each new ladder restarts the economy; the engine should survive it in one command | proposed |
 | 2026-11-17 | Sound-pack variants: a small alias block letting the user pick Tier-3 among 3 candidate slots (hostile/questdone/cube) without reading MPQ docs | one-line personalization for friends | proposed |
+| 2026-11-17 | Loose-file sfx override (`data\global\sfx\...` next to Game.exe) | would have been zero-MPQ-risk money sound | **tested, dead** — PD2 reads sfx only from the MPQ chain; removed |
+| 2026-11-17 | Automated MPQ swap via Ladik MPQEditor CLI targeting the vanilla `d2sfx.mpq` (PD2 never rewrites vanilla archives) | plug-and-play real money sound that survives game updates | shipped, copy-verified (awaiting user apply with game closed) |

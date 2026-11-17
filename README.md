@@ -37,43 +37,36 @@ the official PD2 wiki), so your customization is safe there.
 
 PD2's filter engine accepts **only numeric `%SOUNDID-n%` indexes** (verified in the
 BH engine source — `ParseSoundID` parses `SOUNDID` keys only; custom file paths are a
-Path-of-Diablo feature PD2 does not have). So the actual money clip is installed by
-placing it inside a game sound slot — and `scripts\install_money_sound.py` automates
-everything around that restriction:
+Path-of-Diablo feature PD2 does not have, and a loose-file override in
+`data\global\sfx\` was tested and is ignored by PD2). So the actual money clip is
+installed by swapping it into the game's **vanilla sound archive** — the
+`cursor\hostile.wav` slot (SOUNDID **16**), which PvM gameplay never plays — using
+`scripts\install_money_sound.py`:
 
 ```bat
+:: while the game is CLOSED:
 python scripts\install_money_sound.py
 ```
 
-What it does, in order:
+It converts `assets\money.mp3` to the exact format D2 requires (mono, 22050 Hz,
+16-bit PCM, default first 8 s with fade-out — `--seconds 11` keeps the full clip;
+auto-installs a bundled ffmpeg via pip if needed), locates `d2sfx.mpq` in the vanilla
+install folder (which PD2's launcher never rewrites — the swap survives game
+updates), backs up the whole archive plus the original sound, swaps the slot with
+Ladik's MPQ Editor CLI (auto-downloaded to `ProjectD2\MpqFixer\mpqeditor`), and
+**verifies the swap byte-for-byte before claiming success**.
 
-1. **Converts** `assets\money.mp3` into the exact format D2 requires — mono, 22050 Hz,
-   16-bit PCM WAV (`assets\money.wav`). Default keeps the first 8 seconds with a
-   fade-out (`--seconds 11` keeps the full clip). It auto-installs a bundled ffmpeg
-   via pip if none is on PATH.
-2. **Places a loose-file override** at
-   `<game folder>\data\global\sfx\cursor\hostile.wav` — the classic D2 loose-file
-   loading path, **zero MPQ editing, zero risk**.
-3. **Tells you the 10-second test**: in game type `.playsound 16`.
-   - Money plays? → run `python scripts\install_money_sound.py --link-filter`
-     (switches the Tier-3 jackpot from `%SOUNDID-4733%` to `%SOUNDID-16%` in the
-     filter, with an automatic backup), then press **Numpad 0**. Done.
-   - Blip/nothing? → run the script again (`--skip-convert`) and follow the printed
-     **WinMPQ fallback** — WinMPQ ships with PD2 in `ProjectD2\MpqFixer\`; the steps
-     target `data\global\sfx\cursor\hostile.wav` inside `pd2data.mpq` with an
-     extract-backup first.
+Then, in game:
 
-**Why the `hostile.wav` slot (SOUNDID 16)?** It is a vanilla index (stable — PD2
-appends its own sounds at 4714+, it never renumbers vanilla rows), and PvM gameplay
-never plays it: the only trigger is toggling PvP-hostile, which you almost never do
-in mapping. Alternate slot if you prefer: `cursor\questdone.wav` = SOUNDID **14**
-(quest-completion fanfare). To switch slots manually, edit the single alias line
-`Alias[GG_TIER3_FX]: %BORDER-9B%%MAP-7D%%SOUNDID-4733%` in the filter and change the
-number — then `Numpad 0`.
+1. `.playsound 16` → hear money.
+2. `python scripts\install_money_sound.py --link-filter` — switches the Tier-3
+   jackpot from the built-in `%SOUNDID-4733%` to `%SOUNDID-16%` (backup made).
+3. **Numpad 0** (or F8) → Tier 3 jackpot = money.
 
-`--revert` puts the filter back on the built-in jackpot sound `%SOUNDID-4733%` at any
-time. Note: if a game update re-verifies its MPQs after you used the WinMPQ route,
-re-import the WAV once (the loose-file route is immune to that).
+Undo any time: `--revert` puts the filter back on the built-in jackpot sound;
+`--restore-slot` puts the original `hostile.wav` back into the archive. If a game
+update ever re-verifies the vanilla MPQs, re-run the installer once. Alternate slot
+if you prefer: `cursor\questdone.wav` = SOUNDID **14**.
 
 ### 1.3 Python tooling — three scripts, one folder
 
