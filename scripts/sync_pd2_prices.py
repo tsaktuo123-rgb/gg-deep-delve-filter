@@ -411,6 +411,14 @@ def main():
         skipped_note = (' (%d appraisal aliases not present here, skipped)' % skipped) if skipped else ''
         print('%s: updated (%d alias lines)%s, previous copy -> %s' % (
             path.name, len(file_lines), skipped_note, bak.name))
+    # loot.filter exists only as the launcher-copied ACTIVE filter; keep it
+    # byte-identical to GG so Numpad 0 always loads the full engine
+    gg_path = next((p for p in filters if 'GG_DEEP_DELVE' in p.name), None)
+    loot_path = next((p for p in filters if 'loot.filter' in p.name.lower()
+                      and 'GG_DEEP_DELVE' not in p.name), None)
+    if gg_path and loot_path and gg_path.exists() and not dry:
+        shutil.copyfile(gg_path, loot_path)
+        print('loot.filter synced byte-identical to GG filter')
     if not ok:
         return 2
 
