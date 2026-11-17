@@ -42,10 +42,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 API_URL = 'https://pd2trader.com/item-prices/average/all'
-FILTERS = [
-    Path(r'E:\D2\Diablo II\Diablo II\ProjectD2\filters\local\GG_DEEP_DELVE.filter'),
-    Path(r'E:\D2\Diablo II\Diablo II\ProjectD2\filters\local\Hiim_Hyper.filter'),
-]
+# filter locations are per-machine: override via .env (PD2_FILTER_DIR etc.);
+# the default keeps the standard layout this project was built on working.
+DEFAULT_FILTER_DIR = r'E:\D2\Diablo II\Diablo II\ProjectD2\filters\local'
 # alias name (as used inside the filter) -> pd2trader baseCode
 ALIAS_TO_CODE = {
     'LEM_RUNE_VALUE': 'r20', 'PUL_RUNE_VALUE': 'r21', 'UM_RUNE_VALUE': 'r22',
@@ -195,12 +194,37 @@ def refresh_appraisal_aliases(lines, hours):
     return updated
 
 
+def load_env_file():
+    """Read optional .env (next to this script, or its parent) for per-machine
+    overrides like PD2_FILTER_DIR. Never required."""
+    here = Path(__file__).resolve().parent
+    for cand in (here / '.env', here.parent / '.env'):
+        if cand.exists():
+            env = {}
+            for line in cand.read_text(encoding='utf-8').splitlines():
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    k, v = line.split('=', 1)
+                    env[k.strip()] = v.strip().strip('"').strip("'")
+            return env
+    return {}
+
+
+def get_filters(env):
+    base = Path(env.get('PD2_FILTER_DIR', DEFAULT_FILTER_DIR))
+    gg = base / env.get('PD2_FILTER_NAME', 'GG_DEEP_DELVE.filter')
+    src = base / env.get('PD2_FILTER_SOURCE_NAME', 'Hiim_Hyper.filter')
+    return [gg, src]
+
+
 def main():
     args = sys.argv[1:]
     dry = '--dry-run' in args
     hours = 168
     if '--hours' in args:
         hours = int(args[args.index('--hours') + 1])
+    env = load_env_file()
+    filters = get_filters(env)
 
     print('fetching live S14 prices (ladder softcore, last %dh)...' % hours)
     try:
@@ -274,7 +298,7 @@ def main():
 
     # ---- apply to each filter -------------------------------------------
     ok = True
-    for path in FILTERS:
+    for path in filters:
         if not path.exists():
             print('MISSING: %s' % path)
             ok = False

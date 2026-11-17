@@ -87,6 +87,16 @@ def require_token(env):
         raise SystemExit(1)
     return token, account
 
+def filter_paths(env):
+    """GG filter location, overridable per machine via .env (PD2_FILTER_DIR /
+    PD2_FILTER_NAME / PD2_FILTER_SOURCE_NAME). Defaults keep working for the
+    standard layout this project was built on."""
+    base = Path(env.get('PD2_FILTER_DIR',
+                        r'E:\D2\Diablo II\Diablo II\ProjectD2\filters\local'))
+    gg = base / env.get('PD2_FILTER_NAME', 'GG_DEEP_DELVE.filter')
+    src = base / env.get('PD2_FILTER_SOURCE_NAME', 'Hiim_Hyper.filter')
+    return gg, src
+
 # ------------------------------------------------------------------ http
 def http_json(url, token=None, body=None, timeout=45):
     headers = {'User-Agent': 'GG-DEEP-DELVE-stash-pricer/0.1', 'Accept': 'application/json'}
@@ -377,18 +387,19 @@ def scan_once(token, env):
     return state
 
 # ------------------------------------------------------------------ filter init
-def init_filter():
-    if FILTER.exists():
-        print('GG_DEEP_DELVE.filter already present: %s' % FILTER)
+def init_filter(env):
+    gg, src = filter_paths(env)
+    if gg.exists():
+        print('GG filter already present: %s' % gg)
         return
-    bak = FILTER_SOURCE.with_suffix('.filter.bak')
+    bak = src.with_suffix('.filter.bak')
     if not bak.exists():
         import shutil
-        shutil.copyfile(FILTER_SOURCE, bak)
+        shutil.copyfile(src, bak)
         print('backup created: %s' % bak)
     import shutil
-    shutil.copyfile(FILTER_SOURCE, FILTER)
-    print('initialized %s from %s' % (FILTER.name, FILTER_SOURCE.name))
+    shutil.copyfile(src, gg)
+    print('initialized %s from %s' % (gg.name, src.name))
 
 # ------------------------------------------------------------------ hotkeys
 def start_hotkeys(on_f9, on_f10):
@@ -516,7 +527,7 @@ def main():
     ap.add_argument('--init-filter', action='store_true', help='init GG filter from Hiim_Hyper')
     args = ap.parse_args()
     if args.init_filter:
-        init_filter()
+        init_filter(env)
         return 0
     if args.watch:
         return run_watch(env)
