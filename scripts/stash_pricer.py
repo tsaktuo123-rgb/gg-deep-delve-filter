@@ -346,6 +346,40 @@ def resolve_user_id(token, listing_id=None):
     return None
 
 
+# ------------------------------------------------------------------ overseer tooltip (filter integration)
+def update_filter_status(env, state, rows=None):
+    """Feed findings into the filter: the Horadric Cube tooltip becomes the
+    engine's live readout (standing thresholds, queued counts, total HR,
+    timestamp). The watcher refreshes it each cycle so the overseer can hover
+    the cube in game and review why the engine is listing what it lists."""
+    gg, _ = filter_paths(env)
+    if not gg.exists():
+        return False
+    high, low = load_standings(env)
+    total = sum(it.get('hr') or 0 for it in state.get('items', []))
+    gg_n = sum(1 for r in (rows or []) if r.get('standing') == 'GG')
+    check_n = sum(1 for r in (rows or []) if r.get('standing') == 'CHECK')
+    stamp = datetime.now(timezone.utc).strftime('%H:%M UTC')
+    body_text = 'standings GG>=%.2f CHECK>=%.2f | %d GG / %d check | %.2f HR | engine %s' % (
+        high, low, gg_n, check_n, total, stamp)
+    text = '%GRAY%' + body_text
+    new_alias = 'Alias[GG_ENGINE_STATUS]: ' + text
+    targets = {gg}
+    loot = gg.parent.parent / 'loot.filter'
+    if loot.exists():
+        targets.add(loot)
+    for path in targets:
+        t = path.read_text(encoding='utf-8')
+        if 'Alias[GG_ENGINE_STATUS]' in t:
+            t = re.sub(r'^Alias\[GG_ENGINE_STATUS\]:.*$', new_alias, t, count=1, flags=re.M)
+        elif 'Alias[GG_MONEY_TAG]' in t:
+            t = t.replace('Alias[GG_MONEY_TAG]', new_alias + '\nAlias[GG_MONEY_TAG]', 1)
+        else:
+            continue
+        path.write_text(t, encoding='utf-8', newline='\n')
+    return True
+
+
 def esc(s):
     import html
     return html.escape(str(s))
@@ -870,6 +904,9 @@ def run_once(env, tab_filter=None, full=False, discover_mode=False, do_post=Fals
           % (len(state['items']), total, DASH_HTML.name, DASH_MD.name))
     if discover_mode or do_post:
         rows = discover(state, env)
+    else:
+        rows = discover(state, env)
+    update_filter_status(env, state, rows)
     if do_post:
         run_autolist(env, rows, max_posts=max_posts, include_check=include_check)
     return 0
@@ -905,6 +942,8 @@ def run_watch(env):
             try:
                 state = scan_once(token, env)
                 total = sum(i.get('hr') or 0 for i in state['items'])
+                rows = discover(state, env)
+                update_filter_status(env, state, rows)
                 print('  synced: %d items, %.2f HR' % (len(state['items']), total))
                 chime()
                 toast('GG DEEP DELVE - Synced', ['%d items, %.1f HR' % (len(state['items']), total),
