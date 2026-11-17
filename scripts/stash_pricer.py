@@ -533,7 +533,7 @@ def scan_once(token, env, tab_filter=None, full=False):
     # probe every remaining item with pd2trader's price-check (exact comps:
     # base + quality + sockets + ethereal), rate-limited, capped per cycle
     probed = {}
-    PROBE_CAP = 120
+    PROBE_CAP = 250
     for it in probe_items[:PROBE_CAP]:
         try:
             body = {'item': it.get('code') or it.get('base_name'), 'quality': it.get('quality'),
@@ -981,7 +981,8 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
 
     # the rotation: top N by live ask, listable (raw stash object or synthetic)
     ranked = [r for r in rows if r['ask'] > 0 and r['item'].get('id')
-              and (r['item'].get('raw') or r['item'].get('quality') == 'Currency')]
+              and (r['item'].get('raw') or r['item'].get('quality') == 'Currency')
+              and not str(r['item'].get('code', '')).startswith('r')]
     ranked.sort(key=lambda r: -r['ask'])
     target = ranked[:target_n]
     target_ids = [r['item']['id'] for r in target]
