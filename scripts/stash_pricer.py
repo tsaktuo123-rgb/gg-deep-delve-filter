@@ -365,9 +365,6 @@ def update_filter_status(env, state, rows=None):
     text = '%GRAY%' + body_text
     new_alias = 'Alias[GG_ENGINE_STATUS]: ' + text
     targets = {gg}
-    loot = gg.parent.parent / 'loot.filter'
-    if loot.exists():
-        targets.add(loot)
     for path in targets:
         t = path.read_text(encoding='utf-8')
         if 'Alias[GG_ENGINE_STATUS]' in t:

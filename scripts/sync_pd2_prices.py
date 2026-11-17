@@ -416,8 +416,11 @@ def main():
     gg_path = next((p for p in filters if 'GG_DEEP_DELVE' in p.name), None)
     loot_path = gg_path.parent / 'loot.filter' if gg_path else None
     if gg_path and loot_path and gg_path.exists() and not dry:
-        shutil.copyfile(gg_path, loot_path)
-        print('loot.filter synced byte-identical to GG filter')
+        try:
+            shutil.copyfile(gg_path, loot_path)
+            print('loot.filter synced byte-identical to GG filter')
+        except PermissionError as e:
+            print('! loot.filter is file-locked (game open) - it will refresh on the next sync: %r' % e)
     if not ok:
         return 2
 
