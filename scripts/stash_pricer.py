@@ -426,17 +426,33 @@ def find_filters_dir(game_dir):
 
 def ensure_filter_linked(filters_dir):
     """Make sure GG_DEEP_DELVE.filter exists in the RUNNING install's filter
-    folder. Never overwrites an existing copy - reports instead."""
+    folder AND that the game's active loot.filter (which Numpad 0 reloads)
+    carries the GG content. Never overwrites the GG file itself; loot.filter
+    gets a backup before activation."""
     target = filters_dir / 'GG_DEEP_DELVE.filter'
-    if target.exists():
+    if not target.exists():
+        source = REPO / 'filter' / 'GG_DEEP_DELVE.filter'
+        if not source.exists():
+            print('  ! repo filter copy missing: %s' % source)
+            return False
+        shutil.copyfile(source, target)
+        print('  installed GG_DEEP_DELVE.filter -> %s' % target)
+    else:
         print('  GG_DEEP_DELVE.filter already present in %s' % filters_dir)
-        return True
-    source = REPO / 'filter' / 'GG_DEEP_DELVE.filter'
-    if not source.exists():
-        print('  ! repo filter copy missing: %s' % source)
-        return False
-    shutil.copyfile(source, target)
-    print('  installed GG_DEEP_DELVE.filter -> %s' % target)
+    # activate: the launcher copies its selection into loot.filter; when the
+    # selection lags, Numpad 0 would reload the wrong filter. Sync it.
+    loot = filters_dir.parent.parent / 'loot.filter'
+    if loot.exists():
+        try:
+            head = loot.read_text(encoding='utf-8', errors='replace')
+        except Exception:                                   # noqa: BLE001
+            head = ''
+        if 'GG DEEP DELVE price engine' not in head:
+            shutil.copyfile(loot, loot.with_name('loot.filter.pre-gg'))
+            shutil.copyfile(target, loot)
+            print('  activated: loot.filter now loads GG DEEP DELVE (backup loot.filter.pre-gg)')
+        else:
+            print('  loot.filter already loads GG DEEP DELVE')
     return True
 
 RELOAD_VK_NAMES = {
