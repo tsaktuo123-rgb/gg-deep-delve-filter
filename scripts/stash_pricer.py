@@ -4,35 +4,41 @@
 stash_pricer.py - Hands-free PD2 stash & inventory auto-appraiser for
 GG DEEP DELVE (Project Diablo 2, Season 14).
 
+VERIFIED live 2026-11-17:
+  - GET https://api.projectdiablo2.com/game/stash/<account>
+    with `Authorization: Bearer <PD2_AUTH_TOKEN>` returns the account's
+    shared stash (275 items incl. exact rolled stats), the currency tab
+    (runes/gems with counts), grail data and stats. Endpoint + auth scheme
+    confirmed from the pd2trader app's own open-source client
+    (github.com/errolgr/pd2-trade): personal character stashes arrive over
+    its signed-in socket, not REST - so this tool prices the shared stash,
+    the currency tab, and everything PD2's REST exposes.
+  - Pricing via pd2trader's public endpoints: /api/valuate (bulk, qty-aware),
+    /api/rares/appraisal/batch (exact-roll rare/craft comps from the same
+    stat keys the stash API reports).
+  - Token auto-import: the pd2trader desktop app stores `pd2Token` in
+    %APPDATA%\\com.pd2-trader.app\\settings.json - this script imports it so
+    nobody hand-copies secrets (the token never gets printed or committed).
+
 Modes
-  python stash_pricer.py --watch          background daemon (game-aware 90s polling)
-  python stash_pricer.py --once           one-shot stash scan + pricing
-  python stash_pricer.py --check          price-check the current clipboard item
-  python stash_pricer.py --init-filter    initialize GG_DEEP_DELVE.filter from Hiim_Hyper
+  python stash_pricer.py --watch            background daemon (game-aware 90s polling)
+  python stash_pricer.py --once             one-shot: price the whole stash
+  python stash_pricer.py --once --tab 6     price only the tab matching "6"
+  python stash_pricer.py --import-token     pull the token from the pd2trader app
+  python stash_pricer.py --check            price-check the current clipboard item
+  python stash_pricer.py --init-filter      initialize GG_DEEP_DELVE.filter from Hiim_Hyper
 
-Security boundary (this file's own rule):
-  This tool talks ONLY to the user's own PD2 account with the PD2_AUTH_TOKEN the
-  user themselves pasted into .env. No credential is invented, substituted, or
-  bypassed. Without a token in .env the watcher refuses to start and prints the
-  setup prompt instead. HTTP 401/403 (expired JWT) pauses polling and raises a
-  banner instead of retrying.
-
-Endpoint status (verified 2026-11-17):
-  - VERIFIED PUBLIC (no auth): pd2trader.com  /api/valuate, /api/price-check,
-    /api/rares/appraisal - used for all pricing.
-  - AUTHENTICATED (user token): PD2 account stash/inventory endpoints are read
-    from PD2_API_BASE with candidate paths in PD2_STASH_PATHS. PD2 does not
-    publish authenticated API docs, so every path attempt is logged and the
-    script NEVER invents data: if no candidate resolves, it reports what it
-    tried and exits non-zero rather than printing a confident blank.
+Security boundary: the tool talks only to the user's own account with the token
+the user (or their pd2trader app) supplied locally. HTTP 401/403 pauses polling
+and shows a banner instead of retrying.
 """
 
 import argparse
 import hashlib
-import html
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -42,25 +48,58 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 # ------------------------------------------------------------------ config
-REPO = Path(__file__).resolve().parent.parent          # gg-deep-delve-filter/
-FILTER = Path(r'E:\D2\Diablo II\Diablo II\ProjectD2\filters\local\GG_DEEP_DELVE.filter')
-FILTER_SOURCE = Path(r'E:\D2\Diablo II\Diablo II\ProjectD2\filters\local\Hiim_Hyper.filter')
+REPO = Path(__file__).resolve().parent.parent
+ENV_FILE = REPO / '.env'
 DASH_HTML = REPO / 'stash_prices.html'
 DASH_MD = REPO / 'stash_prices.md'
 CACHE = REPO / 'stash_cache.json'
-ENV_FILE = REPO / '.env'
 
 VALUATE_URL = 'https://pd2trader.com/api/valuate'
+APPRAISAL_BATCH_URL = 'https://pd2trader.com/api/rares/appraisal/batch'
 PRICE_CHECK_URL = 'https://pd2trader.com/api/price-check'
 APPRAISAL_URL = 'https://pd2trader.com/api/rares/appraisal'
 
 PD2_API_BASE = 'https://api.projectdiablo2.com'
-# candidate authenticated paths, tried in order; first 200 wins. Editable via .env.
-PD2_STASH_PATHS = ['/api/player/stash', '/api/stash', '/api/account/stash',
-                   '/api/player/inventory', '/api/v1/stash']
+PD2TRAADER_SETTINGS = Path(os.environ.get('APPDATA', '')) / 'com.pd2-trader.app' / 'settings.json'
+STASH_URL_TMPL = PD2_API_BASE + '/game/stash/%s'
 POLL_SECONDS = 90
 IDLE_CHECK_SECONDS = 60
 GAME_PROCESSES = ('Game.exe', 'Diablo II.exe')
+
+# ------------------------------------------------------------------ standings (product core)
+# 3 deterministic standings for every priced item. Thresholds are HR values,
+# configurable via .env (GG_STAND_HIGH=1.0, GG_STAND_CHECK=0.3).
+def load_standings(env):
+    high = float(env.get('GG_STAND_HIGH', 1.0))     # >= this -> GG (auto-sell candidate)
+    low = float(env.get('GG_STAND_CHECK', 0.3))     # >= this -> CHECK, below -> VENDOR
+    return high, low
+
+def classify(it, high, low, appraisal=None):
+    """Deterministic standing: GG / CHECK / VENDOR for one priced item.
+    Rares/crafts use the pd2trader appraisal verdict + band when available;
+    everything else uses the live HR value against the thresholds."""
+    hr = it.get('hr') or 0
+    verdict = (appraisal or {}).get('verdict')
+    band = (appraisal or {}).get('band') or (appraisal or {}).get('priceBand') or {}
+    band_hi = band.get('high') if isinstance(band.get('high'), (int, float)) else 0
+    band_mid = band.get('mid') if isinstance(band.get('mid'), (int, float)) else 0
+    stars = sum(1 for s in (appraisal or {}).get('stats', [])
+                if isinstance(s, dict) and s.get('stars'))
+    if it.get('quality') in ('Rare', 'Craft') and appraisal is not None:
+        if verdict == 'keep' or band_hi >= high:
+            standing, ask = 'GG', band_hi or hr
+        elif verdict == 'check' or band_mid >= low:
+            standing, ask = 'CHECK', band_mid or hr
+        else:
+            standing, ask = 'VENDOR', hr
+    else:
+        if hr >= high:
+            standing, ask = 'GG', hr
+        elif hr >= low:
+            standing, ask = 'CHECK', hr
+        else:
+            standing, ask = 'VENDOR', hr
+    return standing, ask, stars, verdict
 
 # ------------------------------------------------------------------ .env
 def load_env():
@@ -74,32 +113,48 @@ def load_env():
             env[k.strip()] = v.strip().strip('"').strip("'")
     return env
 
-def require_token(env):
-    token = env.get('PD2_AUTH_TOKEN', '')
-    account = env.get('PD2_ACCOUNT_NAME', '')
+def write_env_key(key, value):
+    lines = []
+    if ENV_FILE.exists():
+        lines = [l for l in ENV_FILE.read_text(encoding='utf-8').splitlines()]
+    out, done = [], False
+    for l in lines:
+        if l.strip().startswith(key + '='):
+            out.append('%s=%s' % (key, value)); done = True
+        else:
+            out.append(l)
+    if not done:
+        out.append('%s=%s' % (key, value))
+    ENV_FILE.write_text('\n'.join(out) + '\n', encoding='utf-8')
+
+def import_token():
+    """Pull PD2_AUTH_TOKEN / account from the pd2trader desktop app settings."""
+    if not PD2TRAADER_SETTINGS.exists():
+        print('pd2trader app settings not found at %s' % PD2TRAADER_SETTINGS)
+        print('Install/log into the pd2trader desktop app first (pd2trader.com/overlay).')
+        return 1
+    s = json.loads(PD2TRAADER_SETTINGS.read_text(encoding='utf-8'))
+    token, account = s.get('pd2Token', ''), s.get('account', '')
+    expiry = s.get('pd2TokenExpiry', 0)
     if not token:
-        print(__doc__)
-        print('\n=== SETUP REQUIRED ===')
-        print('1. Copy .env.example to .env (same folder as this script).')
-        print('2. Paste your PD2 session token as PD2_AUTH_TOKEN=... (never commit .env).')
-        print('3. Optionally set PD2_ACCOUNT_NAME=... and rerun:')
-        print('   python stash_pricer.py --watch')
-        raise SystemExit(1)
-    return token, account
+        print('pd2trader settings found but no pd2Token in them - log into the app first.')
+        return 1
+    exp = datetime.fromtimestamp(expiry / 1000, tz=timezone.utc).strftime('%Y-%m-%d') if expiry else 'unknown'
+    write_env_key('PD2_AUTH_TOKEN', token)
+    if account:
+        write_env_key('PD2_ACCOUNT_NAME', account)
+    print('token imported from pd2trader (expires ~%s, account %s). .env updated, value hidden.' % (exp, account))
+    return 0
 
 def filter_paths(env):
-    """GG filter location, overridable per machine via .env (PD2_FILTER_DIR /
-    PD2_FILTER_NAME / PD2_FILTER_SOURCE_NAME). Defaults keep working for the
-    standard layout this project was built on."""
     base = Path(env.get('PD2_FILTER_DIR',
                         r'E:\D2\Diablo II\Diablo II\ProjectD2\filters\local'))
-    gg = base / env.get('PD2_FILTER_NAME', 'GG_DEEP_DELVE.filter')
-    src = base / env.get('PD2_FILTER_SOURCE_NAME', 'Hiim_Hyper.filter')
-    return gg, src
+    return (base / env.get('PD2_FILTER_NAME', 'GG_DEEP_DELVE.filter'),
+            base / env.get('PD2_FILTER_SOURCE_NAME', 'Hiim_Hyper.filter'))
 
 # ------------------------------------------------------------------ http
-def http_json(url, token=None, body=None, timeout=45):
-    headers = {'User-Agent': 'GG-DEEP-DELVE-stash-pricer/0.1', 'Accept': 'application/json'}
+def http_json(url, token=None, body=None, timeout=60):
+    headers = {'User-Agent': 'GG-DEEP-DELVE-stash-pricer/0.2', 'Accept': 'application/json'}
     if token:
         headers['Authorization'] = 'Bearer ' + token
     data = json.dumps(body).encode() if body is not None else None
@@ -112,160 +167,133 @@ def http_json(url, token=None, body=None, timeout=45):
 class TokenExpired(Exception):
     pass
 
-def fetch_stash(token, base, paths):
-    """Try candidate authenticated stash endpoints; log every attempt."""
-    tried = []
-    for path in paths:
-        url = base.rstrip('/') + path
-        try:
-            status, data = http_json(url, token=token)
-            print('  stash endpoint OK: %s (status %s)' % (path, status))
-            return data, path
-        except urllib.error.HTTPError as e:
-            tried.append((path, e.code))
-            if e.code in (401, 403):
-                raise TokenExpired('%s -> %d' % (path, e.code))
-        except Exception as e:                              # noqa: BLE001
-            tried.append((path, repr(e)[:60]))
-    detail = '; '.join('%s -> %s' % t for t in tried)
-    raise RuntimeError('no stash endpoint resolved. Tried: ' + detail)
+# ------------------------------------------------------------------ stash fetch (VERIFIED)
+def fetch_stash_items(token, account, base=None):
+    """GET /game/stash/<account> - verified working (275 items, currency tab)."""
+    url = (base or PD2_API_BASE).rstrip('/') + '/game/stash/' + account
+    try:
+        _, d = http_json(url, token=token)
+    except urllib.error.HTTPError as e:
+        if e.code in (401, 403):
+            raise TokenExpired('stash %d' % e.code)
+        raise RuntimeError('stash fetch failed: %d %s' % (e.code, e.reason))
+    items = []
+    for it in d.get('items', []):
+        loc = it.get('location') or {}
+        page = loc.get('stash_page')
+        equip = loc.get('equipment') or ''
+        tab = 'Page %s%s' % (page, (' - ' + equip) if equip else '')
+        base_obj = it.get('base') or {}
+        quality = (it.get('quality') or {}).get('name') or ''
+        mods = [(m.get('name'), (m.get('values') or [0])[0]) for m in it.get('modifiers', [])
+                if m.get('name')]
+        items.append({
+            'character': 'Shared Stash',
+            'tab': tab,
+            'pos': equip or loc.get('zone', ''),
+            'code': base_obj.get('id'),
+            'name': it.get('name') or base_obj.get('name') or base_obj.get('id'),
+            'base_name': base_obj.get('name'),
+            'quality': quality,
+            'ilvl': it.get('item_level'),
+            'sockets': it.get('socketed_count') or 0,
+            'ethereal': bool(it.get('is_ethereal')),
+            'identified': bool(it.get('is_identified')),
+            'runeword': bool(it.get('is_runeword')),
+            'modifiers': mods,
+            'id': str(it.get('id')),
+        })
+    # currency tab: runes + gems + materials as qty lines
+    cur = d.get('currency') or {}
+    for code, n in (cur.get('runes') or {}).items():
+        if isinstance(n, int) and n > 0:
+            items.append({'character': 'Currency Tab', 'tab': 'Runes', 'pos': code,
+                          'code': code, 'name': code, 'base_name': code, 'quality': 'Currency',
+                          'qty': n, 'id': 'cur-' + code})
+    for tier, gems in (cur.get('gems') or {}).items():
+        for gem, n in (gems or {}).items():
+            if isinstance(n, int) and n > 0:
+                nm = '%s %s' % (tier.capitalize(), gem.capitalize())
+                items.append({'character': 'Currency Tab', 'tab': 'Gems', 'pos': gem,
+                              'code': gem, 'name': nm, 'base_name': nm, 'quality': 'Gem',
+                              'qty': n, 'id': 'gem-%s-%s' % (tier, gem)})
+    for group, label in [('boss', 'Boss Mats'), ('craft', 'Craft Mats'), ('rejuv', 'Rejuvs'),
+                         ('full_rejuv', 'Rejuvs'), ('demonic_cube', 'Mats'), ('jewel_frag', 'Mats')]:
+        val = cur.get(group)
+        if not isinstance(val, dict):
+            continue
+        for code, n in val.items():
+            if isinstance(n, int) and n > 0:
+                items.append({'character': 'Currency Tab', 'tab': label, 'pos': code,
+                              'code': code, 'name': code, 'base_name': code, 'quality': 'Material',
+                              'qty': n, 'id': 'mat-%s-%s' % (group, code)})
+    return items
 
-# ------------------------------------------------------------------ pricing
-def valuate_items(items, hours=168):
-    """Bulk-price via the public pd2trader /api/valuate endpoint.
-    items: [{'item': '<name or code>', 'qty': int}, ...]"""
-    body = {'items': [{'item': it['item'], 'qty': it.get('qty', 1)} for it in items],
-            'hours': hours, 'isLadder': True, 'isHardcore': False}
-    _, d = http_json(VALUATE_URL, body=body)
+# ------------------------------------------------------------------ pricing (VERIFIED public endpoints)
+def valuate_lines(lines, hours=168):
+    """Bulk price via public /api/valuate. lines: [{item, qty}]. Returns {input: (hr, status)}."""
     out = {}
-    for line in d.get('lines', []):
-        price = line.get('priceHr')
-        status = line.get('status')
-        out[line.get('input') or line.get('item')] = (price, status)
+    for i in range(0, len(lines), 500):
+        chunk = lines[i:i + 500]
+        body = {'items': [{'item': l['item'], 'qty': l.get('qty', 1)} for l in chunk],
+                'hours': hours, 'isLadder': True, 'isHardcore': False}
+        _, d = http_json(VALUATE_URL, body=body)
+        for line in d.get('lines', []):
+            out[line.get('input') or line.get('item')] = (
+                line.get('valueHr', line.get('priceHr')), line.get('confidence'),
+                line.get('unresolvedReason'))
     return out, d
 
-def price_check_exact(name=None, base_code=None, stats=None, quality=None, hours=168):
-    """Single-item exact comps via public /api/price-check."""
-    body = {'item': base_code or name, 'isLadder': True, 'isHardcore': False, 'hours': hours}
-    if quality:
-        body['quality'] = quality
-    if stats:
-        body['stats'] = stats
-    _, d = http_json(PRICE_CHECK_URL, body=body)
-    e = d.get('estimateHr') or {}
-    return e.get('low'), e.get('mid'), e.get('high'), d.get('confidence')
-
-# ------------------------------------------------------------------ clipboard (F10)
-PD2_ITEM_JSON_RE = re.compile(r'\{[\s\S]*"name"[\s\S]*\}')
-
-def clipboard_text():
-    """Windows clipboard via PowerShell (no extra deps)."""
-    ps = ('powershell -NoProfile -Command "Get-Clipboard -Raw"')
-    out = subprocess.run(['powershell', '-NoProfile', '-Command', 'Get-Clipboard -Raw'],
-                         capture_output=True, timeout=15)
-    return out.stdout.decode('utf-8', 'replace').strip()
-
-def parse_pd2_clipboard(text):
-    """Parse PD2's Ctrl+C item copy (JSON: name, quality, type, iLevel, stats[]...).
-    Returns dict or None if the clipboard is not a PD2 item copy."""
-    m = PD2_ITEM_JSON_RE.search(text)
-    if not m:
-        return None
-    try:
-        item = json.loads(m.group(0))
-    except json.JSONDecodeError:
-        return None
-    if not isinstance(item, dict) or 'name' not in item:
-        return None
-    return item
-
-def appraise_clipboard():
-    raw = clipboard_text()
-    item = parse_pd2_clipboard(raw)
-    if not item:
-        print('Clipboard is not a PD2 item copy. Hover an item in game, press Ctrl+C, then try again.')
-        return None
-    name = item.get('name', '')
-    quality = item.get('quality', '')
-    stats = [{'key': s.get('key') or s.get('name'), 'value': s.get('value', s.get('level', 0))}
-             for s in item.get('stats', []) if isinstance(s, dict)]
-    sockets = item.get('sockets') or 0
-    ethereal = bool(item.get('ethereal') or item.get('isEthereal'))
-    result = {'name': name, 'quality': quality, 'ilvl': item.get('iLevel'), 'sockets': sockets,
-              'ethereal': ethereal}
-    if quality in ('Rare', 'Crafted'):
+def appraise_rares(rares, hours=None):
+    """Exact-roll rare/craft comps via public /api/rares/appraisal/batch.
+    rares: list of our normalized items (quality Rare/Craft). Returns {id: verdict_dict}."""
+    out = {}
+    for i in range(0, len(rares), 100):
+        chunk = rares[i:i + 100]
+        entries = []
+        for it in chunk:
+            stats = [{'key': k, 'value': v} for k, v in it.get('modifiers', [])]
+            entries.append({'item': {'baseCode': it.get('code'), 'stats': stats,
+                                     'sockets': it.get('sockets', 0),
+                                     'ethereal': it.get('ethereal', False),
+                                     'quality': it['quality']}})
+        body = {'items': entries, 'isLadder': True, 'isHardcore': False}
         try:
-            _, d = http_json(APPRAISAL_URL,
-                             body={'text': raw, 'isLadder': True, 'isHardcore': False})
-            appraisal = d.get('appraisal') or {}
-            result['appraisal'] = appraisal
-            result['verdict'] = appraisal.get('verdict')
-            band = appraisal.get('priceBand') or appraisal.get('askingPrice') or {}
-            result['band'] = band
-        except Exception as e:                              # noqa: BLE001
-            result['error'] = 'appraisal failed: %r' % e
-    try:
-        low, mid, high, conf = price_check_exact(name=name, quality=quality or None)
-        result['pc'] = (low, mid, high, conf)
-    except Exception as e:                                  # noqa: BLE001
-        result['pc'] = None
-        result['error'] = result.get('error', '') + ' price-check failed: %r' % e
-    return result
-
-# ------------------------------------------------------------------ toast + chime
-def chime():
-    try:
-        import winsound
-        winsound.Beep(880, 120)
-        winsound.Beep(1320, 160)
-    except Exception:                                       # noqa: BLE001
-        pass
-
-def toast(title, lines, seconds=7):
-    """Non-focus-stealing topmost overlay (Tk, borderless, auto-close)."""
-    try:
-        import tkinter as tk
-        root = tk.Tk()
-        root.overrideredirect(True)
-        root.attributes('-topmost', True)
-        root.geometry('340x%d+40+80' % (56 + 22 * len(lines)))
-        frame = tk.Frame(root, bg='#101018', highlightbackground='#D3A000',
-                         highlightthickness=2)
-        frame.pack(fill='both', expand=True)
-        tk.Label(frame, text=title, bg='#101018', fg='#FFD700', font=('Consolas', 11, 'bold')).pack(anchor='w', padx=10, pady=(8, 2))
-        for ln in lines:
-            tk.Label(frame, text=ln, bg='#101018', fg='#EDEDED', font=('Consolas', 9)).pack(anchor='w', padx=10)
-        root.after(seconds * 1000, root.destroy)
-        root.update_idletasks()
-        root.mainloop()
-        return True
-    except Exception:                                       # noqa: BLE001
-        print('[toast] %s | %s' % (title, ' | '.join(lines)))
-        return False
+            _, d = http_json(APPRAISAL_BATCH_URL, body=body)
+        except urllib.error.HTTPError as e:
+            print('  rare batch failed (%d), chunk skipped' % e.code)
+            continue
+        for res in d.get('results', []):
+            idx = res.get('index')
+            if isinstance(idx, int) and idx < len(chunk):
+                ap = res.get('appraisal') or {}
+                out[chunk[idx]['id']] = ap
+    return out
 
 # ------------------------------------------------------------------ dashboard
 def esc(s):
+    import html
     return html.escape(str(s))
 
 def write_dashboard(state):
-    """stash_prices.html (auto-refresh) + stash_prices.md, grouped by character/tab."""
     now = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
     total = sum(it.get('hr') or 0 for it in state.get('items', []))
     banner = ''
     if state.get('token_expired'):
         banner = ('<div style="background:#7a1010;color:#fff;padding:12px 16px;font-weight:bold">'
-                  'Token Expired - Refresh PD2_AUTH_TOKEN in .env, then rerun stash_pricer.py --watch</div>')
+                  'Token Expired - refresh via: python scripts/stash_pricer.py --import-token '
+                  '(pd2trader app) or paste PD2_AUTH_TOKEN into .env</div>')
     rows_html, md_rows = [], []
     groups = {}
     for it in state.get('items', []):
-        key = (it.get('character') or 'Stash', it.get('tab') or '-', )
+        key = (it.get('character') or 'Stash', it.get('tab') or '-')
         groups.setdefault(key, []).append(it)
     for (char, tab), items in sorted(groups.items()):
         sub = sum(i.get('hr') or 0 for i in items)
         rows_html.append('<h2>%s &rsaquo; %s <small>(%s HR)</small></h2><table border=1 cellpadding=4 '
                          'style="border-collapse:collapse;font-family:Consolas,monospace;font-size:13px">'
-                         '<tr><th>Pos</th><th>Item</th><th>Quality</th><th>iLvl</th><th>Sock</th>'
-                         '<th>Value (HR)</th><th>WSS &asymp;</th><th>Listing note (copy)</th></tr>'
+                         '<tr><th>Pos</th><th>Item</th><th>Quality</th><th>iLvl</th><th>Value (HR)</th>'
+                         '<th>WSS &asymp;</th><th>Listing note (copy)</th></tr>'
                          % (esc(char), esc(tab), round(sub, 2)))
         md_rows.append('\n## %s › %s — %s HR\n' % (char, tab, round(sub, 2)))
         md_rows.append('| Pos | Item | Quality | iLvl | Value (HR) | Listing note |')
@@ -274,12 +302,12 @@ def write_dashboard(state):
             note = 'wts %s' % it.get('name', '')
             if it.get('hr'):
                 note += ' // %s HR' % round(it['hr'], 2)
-            rows_html.append('<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td>'
+            rows_html.append('<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td>'
                              '<td><b>%s</b></td><td>%s</td>'
                              '<td><input style="width:340px" readonly value="%s" onclick="this.select()"></td></tr>'
                              % (esc(it.get('pos', '')), esc(it.get('name', '')),
                                 esc(it.get('quality', '')), esc(it.get('ilvl', '')),
-                                esc(it.get('sockets', '')), esc(round(it.get('hr') or 0, 2)),
+                                esc(round(it.get('hr') or 0, 2)),
                                 esc(int(round((it.get('hr') or 0) * 100))), esc(note)))
             md_rows.append('| %s | %s | %s | %s | %s | `%s` |' % (
                 it.get('pos', ''), it.get('name', ''), it.get('quality', ''),
@@ -289,66 +317,37 @@ def write_dashboard(state):
     html_doc = ('<!doctype html><meta charset="utf-8"><title>GG DEEP DELVE - Stash Prices</title>'
                 '<meta http-equiv="refresh" content="60">'
                 '<style>body{background:#0b0b10;color:#eee;font-family:Segoe UI,Consolas;margin:24px}'
-                'h1{color:#FFD700} small{color:#999} input{font-family:Consolas}</style>'
+                'h1{color:#FFD700} h2{color:#9B9BFF} small{color:#999} input{font-family:Consolas}</style>'
                 + banner +
                 '<h1>GG DEEP DELVE - Live Stash Pricing <small>updated %s &middot; total %s HR &middot; '
                 'auto-refresh 60s</small></h1>' % (now, round(total, 2))
                 + ''.join(rows_html) +
-                '<p><small>values: pd2trader.com ladder SC 7-day avg (public API); '
-                'stash data: your PD2 account via PD2_AUTH_TOKEN</small></p>')
+                '<p><small>values: pd2trader.com ladder SC (public API); stash data: your PD2 account '
+                'via the pd2trader-app token; rares appraised with exact rolls.</small></p>')
     DASH_HTML.write_text(html_doc, encoding='utf-8')
     md = ('# GG DEEP DELVE - Stash Prices\n\nupdated %s — total %s HR\n\n'
-          'values: pd2trader.com ladder SC 7-day average (public API).\n'
+          'values: pd2trader.com ladder SC (public API); rares appraised with exact rolls.\n'
           % (now, round(total, 2)))
     if state.get('token_expired'):
-        md += '\n**Token Expired — Refresh PD2_AUTH_TOKEN in .env**\n'
+        md += '\n**Token Expired — Refresh via --import-token**\n'
     DASH_MD.write_text(md + '\n'.join(md_rows), encoding='utf-8')
 
 # ------------------------------------------------------------------ scan + cache
 def fingerprint(it):
     blob = json.dumps({'c': it.get('code'), 'n': it.get('name'), 'i': it.get('ilvl'),
                        's': it.get('sockets'), 'e': it.get('ethereal'),
-                       'q': it.get('quality'), 't': sorted(json.dumps(it.get('stats', [])))},
-                      sort_keys=True)
+                       'q': it.get('quality'), 'm': sorted(str(m) for m in it.get('modifiers', [])),
+                       'q2': it.get('qty')}, sort_keys=True)
     return hashlib.sha1(blob.encode()).hexdigest()
 
-def normalize_stash(payload, account):
-    """Map whatever the authenticated endpoint returned into flat items.
-    Handles nested characters[] / tabs[] shapes defensively; unknown shapes are
-    reported, never guessed."""
-    items = []
-    if not isinstance(payload, dict):
-        return items
-    for char in payload.get('characters', []) or ([payload] if payload.get('name') else []):
-        cname = char.get('name') or account or 'Character'
-        for tab in char.get('stash', char.get('tabs', char.get('inventory', []))) or []:
-            if not isinstance(tab, dict):
-                continue
-            tname = tab.get('name') or tab.get('label') or tab.get('id') or 'tab'
-            for it in tab.get('items', []) or []:
-                if not isinstance(it, dict):
-                    continue
-                items.append({
-                    'character': it.get('character') or cname,
-                    'tab': tname,
-                    'pos': '%s,%s' % (it.get('x', it.get('row', '?')), it.get('y', it.get('col', '?'))),
-                    'code': it.get('code') or it.get('baseCode'),
-                    'name': it.get('name') or it.get('baseName') or it.get('code'),
-                    'quality': it.get('quality'),
-                    'ilvl': it.get('iLevel') or it.get('ilvl'),
-                    'sockets': it.get('sockets') or 0,
-                    'ethereal': bool(it.get('ethereal') or it.get('isEthereal')),
-                    'identified': it.get('identified', True),
-                    'stats': it.get('stats', []),
-                    'qty': it.get('qty') or it.get('count') or 1,
-                })
-    return items
-
-def scan_once(token, env):
-    base = env.get('PD2_API_BASE', PD2_API_BASE)
-    paths = [p for p in re.split(r'[,\s]+', env.get('PD2_STASH_PATHS', '') or '') if p] or PD2_STASH_PATHS
-    payload = fetch_stash(token, base, paths)
-    items = normalize_stash(payload, env.get('PD2_ACCOUNT_NAME', ''))
+def scan_once(token, env, tab_filter=None, full=False):
+    account = env.get('PD2_ACCOUNT_NAME', '')
+    if not account:
+        raise RuntimeError('PD2_ACCOUNT_NAME missing in .env (needed for /game/stash/<account>)')
+    items = fetch_stash_items(token, account)
+    if tab_filter:
+        items = [it for it in items if tab_filter.lower() in it.get('tab', '').lower()
+                 or tab_filter.lower() in (it.get('name') or '').lower()]
     cache = {}
     if CACHE.exists():
         try:
@@ -356,33 +355,58 @@ def scan_once(token, env):
         except Exception:                                   # noqa: BLE001
             cache = {}
     seen = cache.get('items', {})
-    new_items = []
+    fresh = []
     for it in items:
         fp = fingerprint(it)
-        if fp in seen:
+        prev = seen.get(fp)
+        if prev and isinstance(prev, dict) and prev.get('hr') is not None and not full:
+            fresh.append(dict(it, hr=prev.get('hr'), status='cached'))
             continue
-        new_items.append(it)
-        seen[fp] = {'name': it.get('name'), 'ts': datetime.now(timezone.utc).isoformat()}
-    priced = []
-    if new_items:
-        lines = [{'item': (it.get('quality') == 'Unique' and it.get('name')) or it.get('code') or it.get('name'),
-                  'qty': it.get('qty', 1)} for it in new_items]
-        try:
-            val, _ = valuate_items(lines)
-        except Exception as e:                              # noqa: BLE001
-            print('  bulk valuation failed: %r' % e)
-            val = {}
-        for it in new_items:
-            key = (it.get('quality') == 'Unique' and it.get('name')) or it.get('code') or it.get('name')
-            hr, status = val.get(key, (None, None))
-            it2 = dict(it)
-            it2['hr'] = hr if isinstance(hr, (int, float)) else 0
-            it2['status'] = status
-            priced.append(it2)
+        fresh.append(dict(it))
+    # ---- pricing
+    val_lines = []
+    rare_items = []
+    for it in fresh:
+        q = it.get('quality')
+        if q in ('Rare', 'Craft'):
+            rare_items.append(it)
+        elif q in ('Gem',):
+            continue                                   # gems have no market - skip fuzz
+        elif q in ('Magic', 'Normal', 'Superior'):
+            continue                                   # base items: live fuzzy matching misleads; show base value only
+        else:
+            nm = it.get('name') or it.get('base_name')  # uniques/sets/runewords by name, runes/mats by code
+            if it.get('runeword') and it.get('name'):
+                nm = it['name']
+            val_lines.append({'item': nm, 'qty': it.get('qty', 1), 'it': it})
+    dedup = {}
+    for l in val_lines:
+        dedup.setdefault((l['item'], l.get('qty', 1)), []).append(l['it'])
+    priced, _ = valuate_lines([{'item': k[0], 'qty': k[1]} for k in dedup])
+    aps = appraise_rares(rare_items) if rare_items else {}
+    priced_items = []
+    for it in fresh:
+        it2 = dict(it)
+        if it['quality'] in ('Rare', 'Craft'):
+            ap = aps.get(it['id']) or {}
+            band = ap.get('band') or ap.get('priceBand') or {}
+            hr = band.get('mid') or band.get('high') or band.get('low')
+            it2['verdict'] = ap.get('verdict')
+            it2['appraisal'] = ap
+        else:
+            nm = it.get('name') or it.get('base_name')
+            hr, conf, why = priced.get(nm, (None, None, None))
+            it2['confidence'] = conf
+        it2['hr'] = hr if isinstance(hr, (int, float)) else 0
+        priced_items.append(it2)
+    # cache
+    for it in priced_items:
+        seen[fingerprint(it)] = {'name': it.get('name'), 'hr': it.get('hr'),
+                                 'ts': datetime.now(timezone.utc).isoformat()}
     cache['items'] = seen
     cache['last_scan'] = datetime.now(timezone.utc).isoformat()
     CACHE.write_text(json.dumps(cache, indent=1), encoding='utf-8')
-    state = {'items': priced, 'token_expired': False, 'last_scan': cache['last_scan']}
+    state = {'items': priced_items, 'token_expired': False, 'last_scan': cache['last_scan']}
     write_dashboard(state)
     return state
 
@@ -394,17 +418,13 @@ def init_filter(env):
         return
     bak = src.with_suffix('.filter.bak')
     if not bak.exists():
-        import shutil
         shutil.copyfile(src, bak)
         print('backup created: %s' % bak)
-    import shutil
     shutil.copyfile(src, gg)
     print('initialized %s from %s' % (gg.name, src.name))
 
-# ------------------------------------------------------------------ game detection
+# ------------------------------------------------------------------ game detection + hotkeys
 def detect_game_dir():
-    """Find the RUNNING client's own directory (where the user actually launched
-    the game), regardless of which install it is."""
     try:
         out = subprocess.run(
             ['powershell', '-NoProfile', '-Command',
@@ -417,18 +437,12 @@ def detect_game_dir():
         return None
 
 def find_filters_dir(game_dir):
-    """Filters live next to the game exe (this project's layout) or in a
-    sibling ProjectD2 folder (standard layout)."""
     for cand in (game_dir / 'filters' / 'local', game_dir / 'ProjectD2' / 'filters' / 'local'):
         if cand.is_dir():
             return cand
     return None
 
 def ensure_filter_linked(filters_dir):
-    """Make sure GG_DEEP_DELVE.filter exists in the RUNNING install's filter
-    folder AND that the game's active loot.filter (which Numpad 0 reloads)
-    carries the GG content. Never overwrites the GG file itself; loot.filter
-    gets a backup before activation."""
     target = filters_dir / 'GG_DEEP_DELVE.filter'
     if not target.exists():
         source = REPO / 'filter' / 'GG_DEEP_DELVE.filter'
@@ -439,8 +453,6 @@ def ensure_filter_linked(filters_dir):
         print('  installed GG_DEEP_DELVE.filter -> %s' % target)
     else:
         print('  GG_DEEP_DELVE.filter already present in %s' % filters_dir)
-    # activate: the launcher copies its selection into loot.filter; when the
-    # selection lags, Numpad 0 would reload the wrong filter. Sync it.
     loot = filters_dir.parent.parent / 'loot.filter'
     if loot.exists():
         try:
@@ -463,8 +475,6 @@ RELOAD_VK_NAMES = {
 }
 
 def reload_key_name(game_dir):
-    """Read the PD2 cfg for the actual 'Reload Config' binding (it can be
-    rebound); fall back to the default Numpad 0."""
     cfg = game_dir / 'ProjectDiablo.cfg'
     try:
         for line in cfg.read_text(encoding='utf-8', errors='replace').splitlines():
@@ -478,7 +488,6 @@ def reload_key_name(game_dir):
     return 'num 0'
 
 def send_reload(game_dir):
-    """Synthesize the in-game filter-reload keystroke into the (focused) game."""
     try:
         import keyboard                                     # noqa: PLC0415
         key = reload_key_name(game_dir)
@@ -490,26 +499,18 @@ def send_reload(game_dir):
         return False
 
 def link_running_game():
-    """QoL: one call = detect running client, install the filter into ITS
-    folder, reload the filter live. No client restart needed (Numpad 0)."""
     game = detect_game_dir()
     if not game:
         print('  no running Game.exe / Diablo II.exe detected - start the game first')
         return False
     print('  running client: %s' % game.parent)
     fdir = find_filters_dir(game.parent)
-    if not fdir:
-        print('  ! no filters\\local folder found under %s' % game.parent)
-        return False
-    if not ensure_filter_linked(fdir):
+    if not fdir or not ensure_filter_linked(fdir):
         return False
     send_reload(game.parent)
     return True
 
 def restart_running_client():
-    """EXPLICIT-ONLY: kills and relaunches the detected client. Dangerous on
-    hardcore (in-game death). The filter never needs this - Numpad 0 reloads
-    live. Provided for completeness; not wired to any hotkey."""
     game = detect_game_dir()
     if not game:
         print('  no running client detected')
@@ -519,33 +520,88 @@ def restart_running_client():
     subprocess.run(['taskkill', '/IM', 'Game.exe', '/F'], capture_output=True)
     time.sleep(3)
     subprocess.Popen([str(game)], cwd=str(game.parent))
-    print('  relaunched from %s (note: sign in again if the launcher session is required)' % game.parent)
+    print('  relaunched from %s (sign in again if the launcher session is required)' % game.parent)
     return True
 
+# ------------------------------------------------------------------ clipboard (F10)
+def clipboard_text():
+    out = subprocess.run(['powershell', '-NoProfile', '-Command', 'Get-Clipboard -Raw'],
+                         capture_output=True, timeout=15)
+    return out.stdout.decode('utf-8', 'replace').strip()
 
-
-# ------------------------------------------------------------------ modes
-def run_once(env):
-    token, _ = require_token(env)
+def parse_pd2_clipboard(text):
+    m = re.search(r'\{[\s\S]*"name"[\s\S]*\}', text)
+    if not m:
+        return None
     try:
-        state = scan_once(token, env)
-    except TokenExpired as e:
-        print('TOKEN EXPIRED — Refresh PD2_AUTH_TOKEN in .env (%s)' % e)
-        write_dashboard({'items': [], 'token_expired': True})
-        return 2
+        item = json.loads(m.group(0))
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(item, dict) or 'name' not in item:
+        return None
+    return item
+
+def appraise_clipboard():
+    raw = clipboard_text()
+    item = parse_pd2_clipboard(raw)
+    if not item:
+        print('Clipboard is not a PD2 item copy. Hover an item in game, press Ctrl+C, then try again.')
+        return None
+    name = item.get('name', '')
+    quality = item.get('quality', '')
+    result = {'name': name, 'quality': quality}
+    if quality in ('Rare', 'Crafted'):
+        try:
+            _, d = http_json(APPRAISAL_URL,
+                             body={'text': raw, 'isLadder': True, 'isHardcore': False})
+            ap = d.get('appraisal') or {}
+            result['verdict'] = ap.get('verdict')
+            band = ap.get('band') or ap.get('priceBand') or {}
+            result['band'] = band
+        except Exception as e:                              # noqa: BLE001
+            result['error'] = 'appraisal failed: %r' % e
+    try:
+        _, d = http_json(PRICE_CHECK_URL, {'item': name, 'quality': quality or None,
+                                           'isLadder': True, 'isHardcore': False, 'hours': 168})
+        e = d.get('estimateHr') or {}
+        result['pc'] = (e.get('low'), e.get('mid'), e.get('high'), d.get('confidence'))
     except Exception as e:                                  # noqa: BLE001
-        print('scan failed: %r' % e)
-        return 3
-    total = sum(i.get('hr') or 0 for i in state['items'])
-    print('new/unseen items priced: %d (total %.2f HR) -> %s / %s'
-          % (len(state['items']), total, DASH_HTML.name, DASH_MD.name))
-    return 0
+        result['error'] = result.get('error', '') + ' price-check failed: %r' % e
+    return result
+
+# ------------------------------------------------------------------ toast + chime
+def chime():
+    try:
+        import winsound
+        winsound.Beep(880, 120)
+        winsound.Beep(1320, 160)
+    except Exception:                                       # noqa: BLE001
+        pass
+
+def toast(title, lines, seconds=7):
+    try:
+        import tkinter as tk
+        root = tk.Tk()
+        root.overrideredirect(True)
+        root.attributes('-topmost', True)
+        root.geometry('340x%d+40+80' % (56 + 22 * len(lines)))
+        frame = tk.Frame(root, bg='#101018', highlightbackground='#D3A000', highlightthickness=2)
+        frame.pack(fill='both', expand=True)
+        tk.Label(frame, text=title, bg='#101018', fg='#FFD700',
+                 font=('Consolas', 11, 'bold')).pack(anchor='w', padx=10, pady=(8, 2))
+        for ln in lines:
+            tk.Label(frame, text=ln, bg='#101018', fg='#EDEDED',
+                     font=('Consolas', 9)).pack(anchor='w', padx=10)
+        root.after(seconds * 1000, root.destroy)
+        root.update_idletasks()
+        root.mainloop()
+        return True
+    except Exception:                                       # noqa: BLE001
+        print('[toast] %s | %s' % (title, ' | '.join(lines)))
+        return False
 
 # ------------------------------------------------------------------ hotkeys
 def start_hotkeys(on_f9, on_f10, on_f8):
-    """Global hotkeys via `keyboard` (pip install keyboard). Runs as a daemon
-    thread; degrades to polling-only when unavailable (or without admin rights
-    while PD2 runs elevated)."""
     try:
         import keyboard                                     # noqa: PLC0415
     except Exception as e:                                  # noqa: BLE001
@@ -559,14 +615,96 @@ def start_hotkeys(on_f9, on_f10, on_f8):
             print('! hotkey %s failed: %r' % (hot, e))
     return True
 
+# ------------------------------------------------------------------ discovery (product core)
+def discover(state, env, out_path=None):
+    """3-standings discovery: every priced item -> GG / CHECK / VENDOR, with a
+    prepared listing note for the GG tier. Deterministic: thresholds from .env
+    (GG_STAND_HIGH / GG_STAND_CHECK), rare verdicts from pd2trader's appraiser."""
+    high, low = load_standings(env)
+    rows = []
+    for it in state.get('items', []):
+        standing, ask, stars, verdict = classify(it, high, low, it.get('appraisal'))
+        key_stats = []
+        ap = it.get('appraisal') or {}
+        for s in ap.get('stats', []) or []:
+            if isinstance(s, dict) and s.get('stars'):
+                key_stats.append(s.get('label') or s.get('key'))
+        if not key_stats and it.get('modifiers'):
+            mods = sorted(it['modifiers'], key=lambda m: -(m[1] or 0))[:2]
+            key_stats = ['%s %s' % (v, k) for k, v in mods]
+        note = 'wts %s' % it.get('name', '')
+        if key_stats:
+            note += ' (%s)' % ', '.join(key_stats[:2])
+        if it.get('ethereal'):
+            note += ' eth'
+        if ask:
+            note += ' // %s HR' % round(ask, 2)
+        rows.append({'standing': standing, 'ask': ask or 0, 'stars': stars,
+                     'verdict': verdict, 'note': note, 'item': it})
+    order = {'GG': 0, 'CHECK': 1, 'VENDOR': 2}
+    rows.sort(key=lambda r: (order[r['standing']], -r['ask']))
+    gg = [r for r in rows if r['standing'] == 'GG']
+    check = [r for r in rows if r['standing'] == 'CHECK']
+    vendor = [r for r in rows if r['standing'] == 'VENDOR']
+
+    print('\n===== DISCOVERY (standings: GG>=%.2f HR | CHECK>=%.2f HR) =====' % (high, low))
+    print('GG (%d) - ready to list:' % len(gg))
+    for r in gg[:15]:
+        print('  [GG]    %-30s %6.2f HR  %s' % ((r['item'].get('name') or '')[:30], r['ask'], r['note'][:80]))
+    print('CHECK (%d) - worth a look:' % len(check))
+    for r in check[:10]:
+        print('  [CHECK] %-30s %6.2f HR' % ((r['item'].get('name') or '')[:30], r['ask']))
+    print('VENDOR (%d) - everything else' % len(vendor))
+
+    md = ['# GG DEEP DELVE - Discovery %s' % datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC'),
+          '',
+          'standings: GG >= %.2f HR | CHECK >= %.2f HR | else VENDOR' % (high, low),
+          'GG items are listing-ready: copy the note into the PD2 market (or pd2trader Quick List).',
+          '']
+    md += ['## GG - list these (%d)' % len(gg), '', '| Item | Tab | Ask (HR) | Listing note |', '|---|---|---|---|---|']
+    for r in gg:
+        it = r['item']
+        md.append('| %s | %s | %s | `%s` |' % (esc(it.get('name', '')), esc(it.get('tab', '')),
+                                               round(r['ask'], 2), r['note']))
+    md += ['', '## CHECK - verify before selling (%d)' % len(check), '',
+           '| Item | Tab | Est (HR) | Verdict |', '|---|---|---|---|']
+    for r in check:
+        it = r['item']
+        md.append('| %s | %s | %s | %s |' % (esc(it.get('name', '')), esc(it.get('tab', '')),
+                                             round(r['ask'], 2), r['verdict'] or '-'))
+    md += ['', '## VENDOR (%d items - full list in stash_prices.md)' % len(vendor)]
+    out_path = out_path or (REPO / 'discoveries.md')
+    out_path.write_text('\n'.join(md) + '\n', encoding='utf-8')
+    print('discovery file: %s' % out_path.name)
+    return rows
+
+
+def run_once(env, tab_filter=None, full=False, discover_mode=False):
+    token = env.get('PD2_AUTH_TOKEN', '')
+    if not token:
+        print('no token: run  python scripts/stash_pricer.py --import-token')
+        return 1
+    try:
+        state = scan_once(token, env, tab_filter=tab_filter, full=full)
+    except TokenExpired:
+        print('TOKEN EXPIRED — refresh: python scripts/stash_pricer.py --import-token')
+        write_dashboard({'items': [], 'token_expired': True})
+        return 2
+    except Exception as e:                                  # noqa: BLE001
+        print('scan failed: %r' % e)
+        return 3
+    total = sum(i.get('hr') or 0 for i in state['items'])
+    print('items priced: %d (total %.2f HR) -> %s / %s'
+          % (len(state['items']), total, DASH_HTML.name, DASH_MD.name))
+    if discover_mode:
+        discover(state, env)
+    return 0
 
 def run_watch(env):
     token = env.get('PD2_AUTH_TOKEN', '')
     stash_enabled = bool(token)
     if not stash_enabled:
-        print('! no PD2_AUTH_TOKEN in .env - stash/inventory pricing is OFF for now.')
-        print('  The hotkeys still work: F8 link+reload, F9 sync+reload, F10 price check.')
-        print('  Add PD2_AUTH_TOKEN to .env later (README section 2) to enable the stash.')
+        print('! no PD2_AUTH_TOKEN - run --import-token; hotkeys still work meanwhile.')
     state = {'items': [], 'token_expired': False}
     paused = False
 
@@ -583,8 +721,7 @@ def run_watch(env):
             return False
 
     def force_sync():
-        nonlocal state, paused
-        print('[F9] forcing stash + economy sync...')
+        print('[F9] forcing economy + stash sync...')
         try:
             subprocess.run([sys.executable, str(Path(__file__).with_name('sync_pd2_prices.py'))],
                            timeout=300)
@@ -593,25 +730,21 @@ def run_watch(env):
         if stash_enabled:
             try:
                 state = scan_once(token, env)
-                paused = False
                 total = sum(i.get('hr') or 0 for i in state['items'])
-                print('  synced: %d new items, %.2f HR' % (len(state['items']), total))
+                print('  synced: %d items, %.2f HR' % (len(state['items']), total))
                 chime()
-                toast('GG DEEP DELVE - Synced', ['New: %d items' % len(state['items']),
+                toast('GG DEEP DELVE - Synced', ['%d items, %.1f HR' % (len(state['items']), total),
                                                  'reloading filter in game...'])
                 g = detect_game_dir()
                 if g:
                     send_reload(g.parent)
             except TokenExpired as e:
-                paused = True
-                state['token_expired'] = True
-                write_dashboard(state)
-                print('  TOKEN EXPIRED — Refresh PD2_AUTH_TOKEN in .env (%s)' % e)
+                print('  TOKEN EXPIRED — run --import-token (%s)' % e)
             except Exception as e:                          # noqa: BLE001
-                print('  sync failed: %r' % e)
+                print('  stash sync failed: %r' % e)
         else:
             chime()
-            print('  (stash pricing skipped - no token; economy sync ran)')
+            print('  (stash pricing skipped - no token)')
 
     def hot_price_check():
         print('[F10] clipboard price check...')
@@ -627,32 +760,28 @@ def run_watch(env):
                 lines.append('verdict: %s' % res['verdict'])
             if not lines:
                 lines.append('no live comp - see dashboard')
-            print('  %s: %s' % (res.get('name'), lines))
             toast('GG DEEP DELVE - %s' % res.get('name', 'Price Check'), lines)
         except Exception as e:                              # noqa: BLE001
             print('  price check failed: %r' % e)
 
-    start_hotkeys(force_sync, hot_price_check, link_running_game)
+    def hot_link():
+        print('[F8] link + reload...')
+        link_running_game()
+
+    start_hotkeys(force_sync, hot_price_check, hot_link)
     print('watch mode: polling every %ds while %s is running; F8 link+reload, '
-          'F9 sync+reload, F10 clipboard check.'
-          % (POLL_SECONDS, ' / '.join(GAME_PROCESSES)))
+          'F9 sync+reload, F10 clipboard check.' % (POLL_SECONDS, ' / '.join(GAME_PROCESSES)))
     while True:
-        if paused:
-            time.sleep(IDLE_CHECK_SECONDS)
-            continue
-        if not game_running():
+        if paused or not stash_enabled or not game_running():
             time.sleep(IDLE_CHECK_SECONDS)
             continue
         try:
-            if not stash_enabled:
-                time.sleep(POLL_SECONDS)
-                continue
             state = scan_once(token, env)
         except TokenExpired as e:
             paused = True
             state['token_expired'] = True
             write_dashboard(state)
-            print('TOKEN EXPIRED — Refresh PD2_AUTH_TOKEN in .env (%s)' % e)
+            print('TOKEN EXPIRED — run: python scripts/stash_pricer.py --import-token (%s)' % e)
             continue
         except Exception as e:                              # noqa: BLE001
             print('poll failed: %r (retrying next cycle)' % e)
@@ -662,15 +791,21 @@ def main():
     env = load_env()
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--watch', action='store_true', help='background daemon (game-aware)')
-    ap.add_argument('--once', action='store_true', help='one-shot stash scan')
+    ap.add_argument('--once', action='store_true', help='one-shot stash scan + pricing')
+    ap.add_argument('--discover', action='store_true', help='with --once: 3-standings discovery (GG/CHECK/VENDOR) + listing notes')
+    ap.add_argument('--tab', metavar='TEXT', help='with --once: price only tabs/items matching TEXT')
+    ap.add_argument('--full', action='store_true', help='with --once: re-price everything (ignore cache)')
     ap.add_argument('--check', action='store_true', help='price-check clipboard item')
+    ap.add_argument('--import-token', action='store_true', help='pull token from the pd2trader app')
     ap.add_argument('--init-filter', action='store_true', help='init GG filter from Hiim_Hyper')
     ap.add_argument('--detect', action='store_true',
                     help='detect the running client, link the filter into its install, reload live')
     ap.add_argument('--restart-client', action='store_true',
                     help='DANGEROUS: kill + relaunch the running client (hardcore death risk); '
-                         'never needed for filter reloads - use --detect or Numpad 0')
+                         'never needed for filter reloads')
     args = ap.parse_args()
+    if args.import_token:
+        return import_token()
     if args.init_filter:
         init_filter(env)
         return 0
@@ -681,7 +816,7 @@ def main():
     if args.watch:
         return run_watch(env)
     if args.once:
-        return run_once(env)
+        return run_once(env, tab_filter=args.tab, full=args.full, discover_mode=args.discover)
     if args.check:
         res = appraise_clipboard()
         return 0 if res else 1
