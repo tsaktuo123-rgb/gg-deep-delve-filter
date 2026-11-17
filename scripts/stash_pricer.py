@@ -207,9 +207,12 @@ def fetch_stash_items(token, account, base=None):
     # currency/misc/maps/ubers/gems tabs: recursive walk of the ENTIRE currency
     # dict -> every (path, count) becomes a priced, listable line
     cur = d.get('currency') or {}
-    # maps (t11-t36 standard tiers) are NOT tracked by pd2trader's valuation -
-    # their codes fuzzy-resolve to runes. Excluded rather than mis-priced.
-    SKIP_CUR = {'rejuv', 'full_rejuv', 'stash_gold', 'version', 'identifier', 'gems', 'maps'}
+    # NEVER_LIST currency types: main currency (wss), rejuv potions, stash gold,
+    # crafting materials (map_craft), jewel fragments. These stay in the stash -
+    # they're consumed, not sold. Runes and gems also excluded (never sell).
+    SKIP_CUR = {'rejuv', 'full_rejuv', 'stash_gold', 'version', 'identifier',
+                'gems', 'maps', 'wss', 'map_craft', 'jewel_frag', 'runes',
+                'demonic_cube'}
     RUNE_NAMES = {'r01': 'El', 'r02': 'Eld', 'r03': 'Tir', 'r04': 'Nef', 'r05': 'Eth',
                   'r06': 'Ith', 'r07': 'Tal', 'r08': 'Ral', 'r09': 'Ort', 'r10': 'Thul',
                   'r11': 'Amn', 'r12': 'Sol', 'r13': 'Shael', 'r14': 'Dol', 'r15': 'Hel',
