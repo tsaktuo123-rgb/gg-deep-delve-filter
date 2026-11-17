@@ -202,6 +202,7 @@ def fetch_stash_items(token, account, base=None):
             'runeword': bool(it.get('is_runeword')),
             'modifiers': mods,
             'id': str(it.get('id')),
+            'raw': it,
         })
     # currency tab: runes + gems + materials as qty lines
     cur = d.get('currency') or {}
@@ -270,7 +271,81 @@ def appraise_rares(rares, hours=None):
                 out[chunk[idx]['id']] = ap
     return out
 
-# ------------------------------------------------------------------ dashboard
+# ------------------------------------------------------------------ market (auto-list / auto-delist)
+# Verified 2026-11-17: POST /market/listing returns 201 (listing id + server-derived
+# user_id from the token); GET /market/listing accepts Feathers queries (user_id,
+# type, is_ladder, is_hardcore, $limit); DELETE /market/listing/:id removes a listing.
+# Body shape taken from pd2trader's own client (useMarketActions.ts).
+
+MARKET_LISTING_URL = PD2_API_BASE + '/market/listing'
+
+def get_own_listings(token, user_id):
+    q = {'user_id': user_id, 'type': 'item', 'is_ladder': True, 'is_hardcore': False, '$limit': 100}
+    from urllib.parse import urlencode
+    url = MARKET_LISTING_URL + '?' + urlencode(q)
+    _, d = http_json(url, token=token)
+    return d.get('data') or []
+
+def post_listing(token, raw_item, account, hr_price, note, is_ladder=True, is_hardcore=False):
+    body = {
+        'type': 'item',
+        'is_hardcore': is_hardcore,
+        'is_ladder': is_ladder,
+        'item': dict(raw_item, account_id=account.lower()),
+        'hr_price': hr_price,
+        'price': note,
+        'bumped_at': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.000Z'),
+    }
+    _, d = http_json(MARKET_LISTING_URL, token=token, body=body)
+    listing = d.get('data') if isinstance(d, dict) and 'data' in d else d
+    return listing
+
+def delete_listing(token, listing_id):
+    req = urllib.request.Request(MARKET_LISTING_URL + '/' + listing_id, method='DELETE',
+                                 headers={'User-Agent': 'GG-DEEP-DELVE/0.1',
+                                          'Authorization': 'Bearer ' + token,
+                                          'Accept': 'application/json'})
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return r.status
+    except urllib.error.HTTPError as e:
+        print('  delete %s -> %d' % (listing_id, e.code))
+        return e.code
+
+def strict_note(it, obo=True):
+    """The strict listing template: a few words and numbers only.
+    wts <Name> (<top stat>) o.n.o"""
+    name = it.get('name') or it.get('base_name') or ''
+    parts = ['wts', name]
+    if it.get('quality') == 'Rare':
+        mods = sorted(it.get('modifiers', []), key=lambda m: -(m[1] or 0))
+        if mods:
+            key, val = mods[0][0], mods[0][1]
+            pretty = {'poisonresist': 'Psn Res', 'item_magicbonus': 'MF',
+                      'item_goldbonus': 'Gold', 'item_fastercastrate': 'FCR',
+                      'item_fastermovevelocity': 'FRW', 'fres': 'F Res', 'cres': 'C Res',
+                      'lres': 'L Res', 'pres': 'P Res', 'maxhp': 'Life', 'maxmana': 'Mana',
+                      'item_tohit_percent': 'AR%'}.get(key, key.replace('item_', '').replace('_', ' ').title())
+            parts.append('(%s %s)' % (pretty, val))
+    if it.get('ethereal'):
+        parts.append('eth')
+    if obo:
+        parts.append('o.n.o')
+    return ' '.join(parts)
+
+def resolve_user_id(token, listing_id=None):
+    """The market derives user_id from the token; read it back from a listing we own."""
+    if listing_id:
+        try:
+            _, d = http_json(MARKET_LISTING_URL + '/' + listing_id, token=token)
+            uid = d.get('user_id') if isinstance(d, dict) else None
+            if uid:
+                return uid
+        except Exception:                                   # noqa: BLE001
+            pass
+    return None
+
+
 def esc(s):
     import html
     return html.escape(str(s))
@@ -616,6 +691,13 @@ def start_hotkeys(on_f9, on_f10, on_f8):
     return True
 
 # ------------------------------------------------------------------ discovery (product core)
+def price_str(ask):
+    """pd2trader dialog format: >= 1 HR -> 'N HR', below -> 'N WSS' (the app's
+    price input takes either, per the user's screenshot)."""
+    if ask >= 1.0:
+        return '%g HR' % round(ask, 2)
+    return '%d WSS' % int(round(ask * 100))
+
 def discover(state, env, out_path=None):
     """3-standings discovery: every priced item -> GG / CHECK / VENDOR, with a
     prepared listing note for the GG tier. Deterministic: thresholds from .env
@@ -638,9 +720,10 @@ def discover(state, env, out_path=None):
         if it.get('ethereal'):
             note += ' eth'
         if ask:
-            note += ' // %s HR' % round(ask, 2)
+            note += ' // %s' % price_str(ask)
         rows.append({'standing': standing, 'ask': ask or 0, 'stars': stars,
-                     'verdict': verdict, 'note': note, 'item': it})
+                     'verdict': verdict, 'note': note, 'item': it,
+                     'price_str': price_str(ask) if ask else ''})
     order = {'GG': 0, 'CHECK': 1, 'VENDOR': 2}
     rows.sort(key=lambda r: (order[r['standing']], -r['ask']))
     gg = [r for r in rows if r['standing'] == 'GG']
@@ -648,12 +731,12 @@ def discover(state, env, out_path=None):
     vendor = [r for r in rows if r['standing'] == 'VENDOR']
 
     print('\n===== DISCOVERY (standings: GG>=%.2f HR | CHECK>=%.2f HR) =====' % (high, low))
-    print('GG (%d) - ready to list:' % len(gg))
+    print('GG (%d) - queue these in pd2trader (paste note + price):' % len(gg))
     for r in gg[:15]:
-        print('  [GG]    %-30s %6.2f HR  %s' % ((r['item'].get('name') or '')[:30], r['ask'], r['note'][:80]))
+        print('  [GG]    %-30s %-9s %s' % ((r['item'].get('name') or '')[:30], r['price_str'], r['note'][:80]))
     print('CHECK (%d) - worth a look:' % len(check))
     for r in check[:10]:
-        print('  [CHECK] %-30s %6.2f HR' % ((r['item'].get('name') or '')[:30], r['ask']))
+        print('  [CHECK] %-30s %-9s' % ((r['item'].get('name') or '')[:30], r['price_str']))
     print('VENDOR (%d) - everything else' % len(vendor))
 
     md = ['# GG DEEP DELVE - Discovery %s' % datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC'),
@@ -661,17 +744,19 @@ def discover(state, env, out_path=None):
           'standings: GG >= %.2f HR | CHECK >= %.2f HR | else VENDOR' % (high, low),
           'GG items are listing-ready: copy the note into the PD2 market (or pd2trader Quick List).',
           '']
-    md += ['## GG - list these (%d)' % len(gg), '', '| Item | Tab | Ask (HR) | Listing note |', '|---|---|---|---|---|']
+    md += ['## GG - queue these (%d)' % len(gg), '',
+           'paste the note + price into pd2trader\'s Queue Item dialog (Ctrl+D on the item, Ctrl+L):',
+           '', '| Item | Tab | Price | Listing note |', '|---|---|---|---|']
     for r in gg:
         it = r['item']
-        md.append('| %s | %s | %s | `%s` |' % (esc(it.get('name', '')), esc(it.get('tab', '')),
-                                               round(r['ask'], 2), r['note']))
+        md.append('| %s | %s | `%s` | `%s` |' % (esc(it.get('name', '')), esc(it.get('tab', '')),
+                                                 r['price_str'], r['note']))
     md += ['', '## CHECK - verify before selling (%d)' % len(check), '',
-           '| Item | Tab | Est (HR) | Verdict |', '|---|---|---|---|']
+           '| Item | Tab | Price | Verdict |', '|---|---|---|---|']
     for r in check:
         it = r['item']
-        md.append('| %s | %s | %s | %s |' % (esc(it.get('name', '')), esc(it.get('tab', '')),
-                                             round(r['ask'], 2), r['verdict'] or '-'))
+        md.append('| %s | %s | `%s` | %s |' % (esc(it.get('name', '')), esc(it.get('tab', '')),
+                                               r['price_str'], r['verdict'] or '-'))
     md += ['', '## VENDOR (%d items - full list in stash_prices.md)' % len(vendor)]
     out_path = out_path or (REPO / 'discoveries.md')
     out_path.write_text('\n'.join(md) + '\n', encoding='utf-8')
@@ -679,7 +764,94 @@ def discover(state, env, out_path=None):
     return rows
 
 
-def run_once(env, tab_filter=None, full=False, discover_mode=False):
+def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_delist=True):
+    """Drain the listing queue via the verified market API: post GG items not yet
+    listed (rate-limited, session-capped), delist anything whose stash entry vanished.
+    Verified live 2026-11-17: POST /market/listing -> 201, server derives user_id
+    from the token (body shape from pd2trader's own client)."""
+    token = env.get('PD2_AUTH_TOKEN', '')
+    account = env.get('PD2_ACCOUNT_NAME', '').lower()
+    cache = json.loads(CACHE.read_text(encoding='utf-8')) if CACHE.exists() else {}
+    listings = cache.setdefault('listings', {})
+    stash_ids = {r['item']['id'] for r in rows if r['item'].get('id')}
+
+    user_id = cache.get('user_id') or resolve_user_id(token, listings.get('_bootstrap_listing_id'))
+    own = {}
+    if user_id:
+        try:
+            for l in get_own_listings(token, user_id):
+                iid = str(((l.get('item') or {}).get('id')))
+                if iid and iid != 'None':
+                    own[iid] = l.get('_id')
+        except Exception as e:                              # noqa: BLE001
+            print('  own-listings fetch failed: %r' % e)
+
+    posted, delisted, already = [], [], len(own)
+    for r in rows:
+        it = r['item']
+        iid = str(it.get('id'))
+        if not iid or iid in own:
+            continue
+        if r['standing'] == 'GG' or (include_check and r['standing'] == 'CHECK'):
+            raw = it.get('raw')
+            if not raw:
+                b = {'id': it.get('code'), 'category': 'misc',
+                     'codes': {'normal': it.get('code')}, 'name': it.get('name'),
+                     'type': 'Rune' if str(it.get('code', '')).startswith('r') else 'Material',
+                     'type_code': str(it.get('code', '')),
+                     'size': {'height': 1, 'width': 1}, 'requirements': {}}
+                raw = {'base': b, 'quality': {'id': 1, 'name': 'Normal'},
+                       'is_identified': True, 'is_ethereal': False, 'is_runeword': False,
+                       'socketed_count': 0, 'item_level': 1, 'id': iid,
+                       'location': {'storage': 'Shared Stash', 'stash_page': 0}}
+            note = strict_note(it, obo=obo)
+            try:
+                listing = post_listing(token, raw, account, round(r['ask'], 2), note)
+                lid = (listing or {}).get('_id') or (listing or {}).get('id')
+                if lid:
+                    listings[iid] = {'listing_id': lid, 'status': 'posted',
+                                     'name': it.get('name'), 'ask': r['ask'],
+                                     'ts': datetime.now(timezone.utc).isoformat()}
+                    if (listing or {}).get('user_id') and not user_id:
+                        user_id = listing['user_id']
+                        cache['user_id'] = user_id
+                    posted.append((it.get('name'), r['ask'], note))
+                    print('  [POSTED] %-28s %-9s %s' % ((it.get('name') or '')[:28], r['price_str'], note))
+                else:
+                    print('  [FAILED] %s: unexpected response' % (it.get('name'),))
+            except urllib.error.HTTPError as e:
+                detail = e.read()[:120].decode('utf-8', 'replace')
+                print('  [FAILED] %s -> %d %s' % (it.get('name'), e.code, detail))
+                if e.code in (401, 403):
+                    break
+            except Exception as e:                          # noqa: BLE001
+                print('  [FAILED] %s: %r' % (it.get('name'), e))
+            time.sleep(2)
+            if len(posted) >= max_posts:
+                print('  session cap (%d) reached' % max_posts)
+                break
+    if do_delist:
+        try:
+            for l in get_own_listings(token, user_id) if user_id else []:
+                iid = str(((l.get('item') or {}).get('id')))
+                if iid and iid not in stash_ids:
+                    st = delete_listing(token, l.get('_id'))
+                    if st in (200, 204):
+                        listings[iid] = listings.get(iid) or {}
+                        listings[iid]['status'] = 'delisted'
+                        nm = (l.get('item') or {}).get('name')
+                        delisted.append(nm)
+                        print('  [DELISTED] %s (gone from stash)' % nm)
+                    time.sleep(1)
+        except Exception as e:                              # noqa: BLE001
+            print('  delist sweep failed: %r' % e)
+    cache['listings'] = listings
+    CACHE.write_text(json.dumps(cache, indent=1), encoding='utf-8')
+    print('queue: %d posted, %d delisted, %d already listed' % (len(posted), len(delisted), already))
+    return posted, delisted
+
+def run_once(env, tab_filter=None, full=False, discover_mode=False, do_post=False,
+             max_posts=10, include_check=False):
     token = env.get('PD2_AUTH_TOKEN', '')
     if not token:
         print('no token: run  python scripts/stash_pricer.py --import-token')
@@ -696,8 +868,10 @@ def run_once(env, tab_filter=None, full=False, discover_mode=False):
     total = sum(i.get('hr') or 0 for i in state['items'])
     print('items priced: %d (total %.2f HR) -> %s / %s'
           % (len(state['items']), total, DASH_HTML.name, DASH_MD.name))
-    if discover_mode:
-        discover(state, env)
+    if discover_mode or do_post:
+        rows = discover(state, env)
+    if do_post:
+        run_autolist(env, rows, max_posts=max_posts, include_check=include_check)
     return 0
 
 def run_watch(env):
@@ -793,6 +967,11 @@ def main():
     ap.add_argument('--watch', action='store_true', help='background daemon (game-aware)')
     ap.add_argument('--once', action='store_true', help='one-shot stash scan + pricing')
     ap.add_argument('--discover', action='store_true', help='with --once: 3-standings discovery (GG/CHECK/VENDOR) + listing notes')
+    ap.add_argument('--post', action='store_true',
+                    help='with --once --discover: AUTO-LIST GG items on the PD2 market and '
+                         'auto-delist anything gone from the stash (uses your token; rate-limited)')
+    ap.add_argument('--max-posts', type=int, default=10, help='session cap for --post (default 10)')
+    ap.add_argument('--list-check', action='store_true', help='with --post: also list CHECK-standing items')
     ap.add_argument('--tab', metavar='TEXT', help='with --once: price only tabs/items matching TEXT')
     ap.add_argument('--full', action='store_true', help='with --once: re-price everything (ignore cache)')
     ap.add_argument('--check', action='store_true', help='price-check clipboard item')
@@ -816,7 +995,8 @@ def main():
     if args.watch:
         return run_watch(env)
     if args.once:
-        return run_once(env, tab_filter=args.tab, full=args.full, discover_mode=args.discover)
+        return run_once(env, tab_filter=args.tab, full=args.full, discover_mode=args.discover,
+                        do_post=args.post, max_posts=args.max_posts, include_check=args.list_check)
     if args.check:
         res = appraise_clipboard()
         return 0 if res else 1
