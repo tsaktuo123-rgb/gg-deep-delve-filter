@@ -514,6 +514,8 @@ def scan_once(token, env, tab_filter=None, full=False):
                                  'ts': datetime.now(timezone.utc).isoformat()}
     cache['items'] = seen
     cache['last_scan'] = datetime.now(timezone.utc).isoformat()
+    # keep raw stash objects for the instant-sell hotkey (F7) and auto-listing
+    cache['raw_items'] = {it['id']: it.get('raw') for it in items if it.get('raw')}
     CACHE.write_text(json.dumps(cache, indent=1), encoding='utf-8')
     state = {'items': priced_items, 'token_expired': False, 'last_scan': cache['last_scan']}
     write_dashboard(state)
@@ -709,14 +711,93 @@ def toast(title, lines, seconds=7):
         print('[toast] %s | %s' % (title, ' | '.join(lines)))
         return False
 
+# ------------------------------------------------------------------ instant sell (F7)
+def instant_sell(env):
+    """Hover item -> Ctrl+C -> F7: parse the exact rolls, price via pd2trader,
+    match the stash copy, and POST the listing with that price. If the item is
+    not in the stash yet, price it and say so (move it to stash, F7 again)."""
+    token = env.get('PD2_AUTH_TOKEN', '')
+    if not token:
+        print('[F7] no token - run --import-token')
+        return
+    raw_clip = clipboard_text()
+    item = parse_pd2_clipboard(raw_clip)
+    if not item:
+        print('[F7] clipboard is not a PD2 item copy (hover item, Ctrl+C first)')
+        return
+    name = item.get('name', '')
+    quality = item.get('quality', '')
+    ilvl = item.get('iLevel')
+    # 1. price it (exact rolls for rares/crafts)
+    ask, basis = None, ''
+    if quality in ('Rare', 'Crafted'):
+        try:
+            _, d = http_json(APPRAISAL_URL, body={'text': raw_clip,
+                                                  'isLadder': True, 'isHardcore': False})
+            ap = d.get('appraisal') or {}
+            band = ap.get('band') or ap.get('priceBand') or {}
+            hi, mid = band.get('high'), band.get('mid')
+            ask = hi if isinstance(hi, (int, float)) and hi else (
+                round(mid * 1.1, 2) if isinstance(mid, (int, float)) else None)
+            basis = 'appraisal %s (rank %.2f)' % (ap.get('verdict'), ap.get('rank') or 0)
+        except Exception as e:                              # noqa: BLE001
+            print('[F7] appraisal failed: %r' % e)
+    if ask is None:
+        try:
+            _, d = http_json(PRICE_CHECK_URL, {'item': name, 'quality': quality or None,
+                                               'isLadder': True, 'isHardcore': False, 'hours': 168})
+            e = d.get('estimateHr') or {}
+            ask, basis = e.get('high') or e.get('mid'), 'comps %s' % d.get('confidence')
+        except Exception as e:                              # noqa: BLE001
+            print('[F7] price check failed: %r' % e)
+    if not isinstance(ask, (int, float)):
+        print('[F7] no price for %s - not listing' % name)
+        return
+    # 2. match the stash copy (the market lists stash items, like pd2trader does)
+    cache = json.loads(CACHE.read_text(encoding='utf-8')) if CACHE.exists() else {}
+    raw_items = cache.get('raw_items') or {}
+    match = None
+    for iid, raw in raw_items.items():
+        b = (raw.get('base') or {})
+        if ((raw.get('name') or b.get('name')) == name
+                and raw.get('item_level') == ilvl):
+            match = dict(raw, account_id=env.get('PD2_ACCOUNT_NAME', '').lower())
+            stash_id = iid
+            break
+    if not match:
+        print('[F7] %s priced %.2f HR (%s) - not in the stash yet; move it in and press F7 again'
+              % (name, ask, basis))
+        toast('GG DEEP DELVE - %s' % name,
+              ['%.2f HR (%s)' % (ask, basis), 'not in stash - move it in, F7 again'])
+        return
+    # 3. list it
+    note = 'wts %s o.n.o' % name
+    try:
+        listing = post_listing(token, match, env.get('PD2_ACCOUNT_NAME', ''), round(ask, 2), note)
+        lid = (listing or {}).get('_id') or (listing or {}).get('id')
+        print('[F7] LISTED %s @ %.2f HR (%s) id=%s' % (name, ask, basis, lid))
+        chime()
+        toast('GG DEEP DELVE - LISTED', ['%s @ %.2f HR' % (name, ask), basis])
+    except urllib.error.HTTPError as e:
+        print('[F7] listing failed -> %d %s' % (e.code,
+                                                e.read()[:150].decode('utf-8', 'replace')))
+    except Exception as e:                                  # noqa: BLE001
+        print('[F7] listing failed: %r' % e)
+
+
 # ------------------------------------------------------------------ hotkeys
-def start_hotkeys(on_f9, on_f10, on_f8):
+def start_hotkeys(on_f9, on_f10, on_f8, on_f7=None):
+    """Global hotkeys via `keyboard` (pip install keyboard). Runs as a daemon
+    thread; degrades to polling-only when unavailable (or without admin rights
+    while PD2 runs elevated)."""
     try:
         import keyboard                                     # noqa: PLC0415
     except Exception as e:                                  # noqa: BLE001
         print('! hotkeys unavailable (pip install keyboard; admin if PD2 is elevated): %r' % e)
         return None
-    for hot, fn in [('f8', on_f8), ('f9', on_f9), ('f10', on_f10)]:
+    for hot, fn in [('f7', on_f7), ('f8', on_f8), ('f9', on_f9), ('f10', on_f10)]:
+        if fn is None:
+            continue
         try:
             keyboard.add_hotkey(hot, fn)
             print('hotkey registered: %s' % hot.upper())
@@ -981,7 +1062,7 @@ def run_watch(env):
         print('[F8] link + reload...')
         link_running_game()
 
-    start_hotkeys(force_sync, hot_price_check, hot_link)
+    start_hotkeys(force_sync, hot_price_check, hot_link, on_f7=instant_sell)
     print('watch mode: polling every %ds while %s is running; F8 link+reload, '
           'F9 sync+reload, F10 clipboard check.' % (POLL_SECONDS, ' / '.join(GAME_PROCESSES)))
     while True:
