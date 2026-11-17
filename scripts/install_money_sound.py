@@ -35,6 +35,7 @@ Exit codes: 0 ok, 1 config/conversion failure, 2 filter edit aborted, 3 game run
 """
 import argparse
 import hashlib
+import os
 import re
 import shutil
 import ssl
@@ -203,7 +204,11 @@ def patch_mpq(env):
     for root, _, files in os.walk(tmp):
         for f in files:
             got = os.path.join(root, f)
-    if got:
+    if got and sha(got) == sha(WAV_OUT):
+        print('slot already plays money - nothing to do. Use --link-filter if not linked yet.')
+        shutil.rmtree(tmp, ignore_errors=True)
+        return 0
+    if got and not orig_out.exists():
         shutil.copyfile(got, orig_out)
         print('original slot sound backed up: %s (%d bytes)' % (orig_out.name, os.path.getsize(got)))
     else:
@@ -226,9 +231,15 @@ def patch_mpq(env):
     for root, _, files in os.walk(chk):
         for f in files:
             got = os.path.join(root, f)
+    if got:
+        same = sha(got) == sha(WAV_OUT)          # hash BEFORE any cleanup
+        print('verify: extracted slot == money.wav ->', same)
+    else:
+        same = False
+        print('verify: nothing extracted')
     shutil.rmtree(chk, ignore_errors=True)
     shutil.rmtree(tmp, ignore_errors=True)
-    if got and sha(got) == sha(WAV_OUT):
+    if same:
         print('SWAP VERIFIED: %s in %s now plays money (%d bytes, byte-identical).'
               % (SOUND_SLOT, mpq.name, os.path.getsize(got)))
         print('Next: start the game, run ".playsound 16" to hear it, then:')
