@@ -980,7 +980,10 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
             return [], []
 
     # the rotation: top N by live ask, listable (raw stash object or synthetic)
+    # only GG + CHECK standing items get listed (the user's "don't waste sell
+    # slots" rule: VENDOR items are junk by definition)
     ranked = [r for r in rows if r['ask'] > 0 and r['item'].get('id')
+              and r['standing'] in ('GG', 'CHECK')
               and (r['item'].get('raw') or r['item'].get('quality') == 'Currency')
               and not str(r['item'].get('code', '')).startswith('r')]
     ranked.sort(key=lambda r: -r['ask'])
