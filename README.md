@@ -33,43 +33,25 @@ identify, and a hands-free stash/inventory watcher that keeps a live pricing das
 Local filters are **never auto-updated or overwritten by the launcher** (verified against
 the official PD2 wiki), so your customization is safe there.
 
-### 1.2 The real money sound — plug-and-play installer
+### 1.2 The money sound — honest verdict
 
 PD2's filter engine accepts **only numeric `%SOUNDID-n%` indexes** (verified in the
-BH engine source — `ParseSoundID` parses `SOUNDID` keys only; custom file paths are a
-Path-of-Diablo feature PD2 does not have, and a loose-file override in
-`data\global\sfx\` was tested and is ignored by PD2). So the actual money clip is
-installed by swapping it into the game's **vanilla sound archive** — the
-`cursor\hostile.wav` slot (SOUNDID **16**), which PvM gameplay never plays — using
-`scripts\install_money_sound.py`:
+BH engine source), and its data archives are **actively protected**: a loose-file
+override is ignored, the vanilla `d2sfx.mpq` carries a 20,000-entry decoy flood per
+filename, and a valid entry written into PD2's own `patch_d2.mpq` was still not
+resolved by the game's loader. Three independent routes were tested in game to
+ground truth — **a custom `money.mp3` inside PD2 is not achievable with today's
+knowledge**, and this repo says so instead of pretending otherwise.
 
-```bat
-:: while the game is CLOSED:
-python scripts\install_money_sound.py
-```
+What ships instead: **Tier 3 plays `%SOUNDID-4733%`**, the built-in jackpot chime
+(the same sound the base filter reserves for Vial of Lightsong / Lilith's Mirror).
+You can audition it with `.playsound 4733`.
 
-It converts `assets\money.mp3` to the exact format D2 requires (mono, 22050 Hz,
-16-bit PCM, default first 8 s with fade-out — `--seconds 11` keeps the full clip;
-auto-installs a bundled ffmpeg via pip if needed), locates `d2sfx.mpq` in the vanilla
-install folder (which PD2's launcher never rewrites — the swap survives game
-updates), backs up the whole archive plus the original sound, swaps the slot with
-**StormLib and explicit ZLIB compression** (an early MPQEditor-CLI attempt used a
-codec D2 cannot read and crashed the game — that is why the codec is now forced),
-and **verifies the swap byte-for-byte after flushing**.
-
-Then, in game:
-
-1. `.playsound 16` → hear money.
-2. `python scripts\install_money_sound.py --link-filter` — switches the Tier-3
-   jackpot from the built-in `%SOUNDID-4733%` to `%SOUNDID-16%` (backup made,
-   `loot.filter` synced).
-3. **Numpad 0** (or F8) → Tier 3 jackpot = money.
-
-Undo any time: `--revert` puts the filter back on the built-in jackpot sound;
-`--restore-slot` puts the original `hostile.wav` back into the archive;
-`d2sfx.mpq.money-bak` is a full archive copy. If a game update ever re-verifies the
-vanilla MPQs, re-run the installer once. Alternate slot if you prefer:
-`cursor\questdone.wav` = SOUNDID **14**.
+Kept for the future: `assets/money.mp3` (the full research trail lives in
+`VISION.md` — if a season changes how PD2 loads its MPQs, an agent starting from
+that backlog skips three dead ends). The tooling
+(`scripts/install_money_sound.py`) is left in place but is not part of the
+supported flow.
 
 ### 1.3 Python tooling — three scripts, one folder
 
@@ -305,8 +287,8 @@ watcher still polls normally; F9/F10 are conveniences, not requirements.
   every filter release.
 - **Tier sounds wrong?** — run `scripts\Sync_PD2_Filter.bat`; it re-anchors Tier 1 to
   the live Um price and re-tunes every tier, printing the full tier table.
-- **money.mp3** — see §1.2: run `scripts\install_money_sound.py` (loose-file override
-  first, WinMPQ fallback if the game ignores it), then `--link-filter` and `Numpad 0`.
+- **money.mp3** — see §1.2: PD2 protects its archives; the built-in jackpot
+  `%SOUNDID-4733%` ships as Tier 3. Custom audio is not currently achievable.
 
 ---
 
