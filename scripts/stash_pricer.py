@@ -401,23 +401,112 @@ def init_filter(env):
     shutil.copyfile(src, gg)
     print('initialized %s from %s' % (gg.name, src.name))
 
-# ------------------------------------------------------------------ hotkeys
-def start_hotkeys(on_f9, on_f10):
-    """Global hotkeys via `keyboard` (pip install keyboard). Runs as a daemon
-    thread; degrades to polling-only when unavailable (or without admin rights
-    while PD2 runs elevated)."""
+# ------------------------------------------------------------------ game detection
+def detect_game_dir():
+    """Find the RUNNING client's own directory (where the user actually launched
+    the game), regardless of which install it is."""
+    try:
+        out = subprocess.run(
+            ['powershell', '-NoProfile', '-Command',
+             "Get-CimInstance Win32_Process -Filter \"Name='Game.exe' OR Name='Diablo II.exe'\""
+             " | Select-Object -First 1 -ExpandProperty ExecutablePath"],
+            capture_output=True, timeout=30)
+        path = out.stdout.decode('utf-8', 'replace').strip()
+        return Path(path) if path and path.lower().endswith('.exe') else None
+    except Exception:                                       # noqa: BLE001
+        return None
+
+def find_filters_dir(game_dir):
+    """Filters live next to the game exe (this project's layout) or in a
+    sibling ProjectD2 folder (standard layout)."""
+    for cand in (game_dir / 'filters' / 'local', game_dir / 'ProjectD2' / 'filters' / 'local'):
+        if cand.is_dir():
+            return cand
+    return None
+
+def ensure_filter_linked(filters_dir):
+    """Make sure GG_DEEP_DELVE.filter exists in the RUNNING install's filter
+    folder. Never overwrites an existing copy - reports instead."""
+    target = filters_dir / 'GG_DEEP_DELVE.filter'
+    if target.exists():
+        print('  GG_DEEP_DELVE.filter already present in %s' % filters_dir)
+        return True
+    source = REPO / 'filter' / 'GG_DEEP_DELVE.filter'
+    if not source.exists():
+        print('  ! repo filter copy missing: %s' % source)
+        return False
+    shutil.copyfile(source, target)
+    print('  installed GG_DEEP_DELVE.filter -> %s' % target)
+    return True
+
+RELOAD_VK_NAMES = {
+    'VK_NUMPAD0': 'num 0', 'VK_NUMPAD1': 'num 1', 'VK_NUMPAD2': 'num 2',
+    'VK_NUMPAD3': 'num 3', 'VK_NUMPAD4': 'num 4', 'VK_NUMPAD5': 'num 5',
+    'VK_NUMPAD6': 'num 6', 'VK_NUMPAD7': 'num 7', 'VK_NUMPAD8': 'num 8',
+    'VK_NUMPAD9': 'num 9',
+}
+
+def reload_key_name(game_dir):
+    """Read the PD2 cfg for the actual 'Reload Config' binding (it can be
+    rebound); fall back to the default Numpad 0."""
+    cfg = game_dir / 'ProjectDiablo.cfg'
+    try:
+        for line in cfg.read_text(encoding='utf-8', errors='replace').splitlines():
+            low = line.lower()
+            if 'reload' in low:
+                for vk, name in RELOAD_VK_NAMES.items():
+                    if vk.lower() in low:
+                        return name
+    except Exception:                                       # noqa: BLE001
+        pass
+    return 'num 0'
+
+def send_reload(game_dir):
+    """Synthesize the in-game filter-reload keystroke into the (focused) game."""
     try:
         import keyboard                                     # noqa: PLC0415
+        key = reload_key_name(game_dir)
+        keyboard.send(key)
+        print('  reload keystroke sent (%s) - filter reloaded live in game' % key)
+        return True
     except Exception as e:                                  # noqa: BLE001
-        print('! hotkeys unavailable (pip install keyboard; admin if PD2 is elevated): %r' % e)
-        return None
-    for hot, fn in [('f9', on_f9), ('f10', on_f10)]:
-        try:
-            keyboard.add_hotkey(hot, fn)
-            print('hotkey registered: %s' % hot.upper())
-        except Exception as e:                              # noqa: BLE001
-            print('! hotkey %s failed: %r' % (hot, e))
+        print('  could not send reload (%r) - press Numpad 0 manually' % e)
+        return False
+
+def link_running_game():
+    """QoL: one call = detect running client, install the filter into ITS
+    folder, reload the filter live. No client restart needed (Numpad 0)."""
+    game = detect_game_dir()
+    if not game:
+        print('  no running Game.exe / Diablo II.exe detected - start the game first')
+        return False
+    print('  running client: %s' % game.parent)
+    fdir = find_filters_dir(game.parent)
+    if not fdir:
+        print('  ! no filters\\local folder found under %s' % game.parent)
+        return False
+    if not ensure_filter_linked(fdir):
+        return False
+    send_reload(game.parent)
     return True
+
+def restart_running_client():
+    """EXPLICIT-ONLY: kills and relaunches the detected client. Dangerous on
+    hardcore (in-game death). The filter never needs this - Numpad 0 reloads
+    live. Provided for completeness; not wired to any hotkey."""
+    game = detect_game_dir()
+    if not game:
+        print('  no running client detected')
+        return False
+    print('  WARNING: killing Game.exe now - hardcore characters die. Ctrl+C within 5s to abort.')
+    time.sleep(5)
+    subprocess.run(['taskkill', '/IM', 'Game.exe', '/F'], capture_output=True)
+    time.sleep(3)
+    subprocess.Popen([str(game)], cwd=str(game.parent))
+    print('  relaunched from %s (note: sign in again if the launcher session is required)' % game.parent)
+    return True
+
+
 
 # ------------------------------------------------------------------ modes
 def run_once(env):
@@ -435,6 +524,25 @@ def run_once(env):
     print('new/unseen items priced: %d (total %.2f HR) -> %s / %s'
           % (len(state['items']), total, DASH_HTML.name, DASH_MD.name))
     return 0
+
+# ------------------------------------------------------------------ hotkeys
+def start_hotkeys(on_f9, on_f10, on_f8):
+    """Global hotkeys via `keyboard` (pip install keyboard). Runs as a daemon
+    thread; degrades to polling-only when unavailable (or without admin rights
+    while PD2 runs elevated)."""
+    try:
+        import keyboard                                     # noqa: PLC0415
+    except Exception as e:                                  # noqa: BLE001
+        print('! hotkeys unavailable (pip install keyboard; admin if PD2 is elevated): %r' % e)
+        return None
+    for hot, fn in [('f8', on_f8), ('f9', on_f9), ('f10', on_f10)]:
+        try:
+            keyboard.add_hotkey(hot, fn)
+            print('hotkey registered: %s' % hot.upper())
+        except Exception as e:                              # noqa: BLE001
+            print('! hotkey %s failed: %r' % (hot, e))
+    return True
+
 
 def run_watch(env):
     token, _ = require_token(env)
@@ -468,7 +576,10 @@ def run_watch(env):
             print('  synced: %d new items, %.2f HR' % (len(state['items']), total))
             chime()
             toast('GG DEEP DELVE - Synced', ['New: %d items' % len(state['items']),
-                                             'Press Numpad 0 in game to reload filter'])
+                                             'reloading filter in game...'])
+            g = detect_game_dir()
+            if g:
+                send_reload(g.parent)
         except TokenExpired as e:
             paused = True
             state['token_expired'] = True
@@ -496,8 +607,9 @@ def run_watch(env):
         except Exception as e:                              # noqa: BLE001
             print('  price check failed: %r' % e)
 
-    start_hotkeys(force_sync, hot_price_check)
-    print('watch mode: polling every %ds while %s is running; F9 force sync, F10 clipboard check.'
+    start_hotkeys(force_sync, hot_price_check, link_running_game)
+    print('watch mode: polling every %ds while %s is running; F8 link+reload, '
+          'F9 sync+reload, F10 clipboard check.'
           % (POLL_SECONDS, ' / '.join(GAME_PROCESSES)))
     while True:
         if paused:
@@ -525,10 +637,19 @@ def main():
     ap.add_argument('--once', action='store_true', help='one-shot stash scan')
     ap.add_argument('--check', action='store_true', help='price-check clipboard item')
     ap.add_argument('--init-filter', action='store_true', help='init GG filter from Hiim_Hyper')
+    ap.add_argument('--detect', action='store_true',
+                    help='detect the running client, link the filter into its install, reload live')
+    ap.add_argument('--restart-client', action='store_true',
+                    help='DANGEROUS: kill + relaunch the running client (hardcore death risk); '
+                         'never needed for filter reloads - use --detect or Numpad 0')
     args = ap.parse_args()
     if args.init_filter:
         init_filter(env)
         return 0
+    if args.restart_client:
+        return 0 if restart_running_client() else 1
+    if args.detect:
+        return 0 if link_running_game() else 1
     if args.watch:
         return run_watch(env)
     if args.once:

@@ -5,6 +5,10 @@ Every drop's ground label and hover tooltip reflects live Season 14 market value
 3-tier drop audio, pre-ID metadata appraisals on drop, post-ID roll/slam appraisals on
 identify, and a hands-free stash/inventory watcher that keeps a live pricing dashboard.
 
+> **Working on this repo? Read [VISION.md](VISION.md) first** — every change here has
+> one law: make the player's session better. The backlog there is where the next QoL
+> feature gets filed.
+
 - Live economy source: [pd2trader.com](https://pd2trader.com) public API (ladder, softcore, 7-day average)
 - Season: **S14 "Alliance"** (verified against the official patch notes and live API on 2026-11-17)
 - Base filter: HiimFilter (Hyper), Season 14 build 247 — every original leveling rule,
@@ -255,9 +259,18 @@ additionally be forced from the launcher (the BH loot-filter settings
 | Key | Where | What happens |
 |---|---|---|
 | **`Ctrl + C`** | in game (hovering an item) | PD2 copies the hovered item's full stats (JSON) to the Windows clipboard — native PD2 behaviour |
-| **`F10`** | global (watcher running) | reads that clipboard copy, queries pd2trader's public **rare appraisal** (rares/crafts) and **price-check** (exact-stat comps) endpoints and pops a non-focus-stealing topmost toast with the live HR range + verdict. No alt-tabbing |
-| **`F9`** | global (watcher running) | Forces an immediate full cycle: re-pulls your stash/inventory, re-runs the price sync (live economy → filter aliases + thresholds), rebuilds the dashboard, plays a confirmation chime |
-| **`Numpad 0`** | in game | Native PD2 filter-reload — press it right after `F9` to load the refreshed prices in-game |
+| **`F8`** | global (watcher running) | **Link & reload**: detects the *running* client's own folder, makes sure `GG_DEEP_DELVE.filter` is installed in that install's `filters\local`, then synthesizes the filter-reload keystroke into the game. One keypress links the whole engine together |
+| **`F9`** | global (watcher running) | **Sync & reload**: forces an immediate full cycle — re-pulls your stash/inventory, re-runs the price sync (live economy → filter aliases + thresholds), rebuilds the dashboard, plays a chime, then sends the reload keystroke automatically |
+| **`F10`** | global (watcher running) | reads the `Ctrl + C` clipboard copy, queries pd2trader's public **rare appraisal** (rares/crafts) and **price-check** (exact-stat comps) endpoints and pops a non-focus-stealing topmost toast with the live HR range + verdict. No alt-tabbing |
+| **`Numpad 0`** | in game | Native PD2 filter-reload (the F8/F9 hotkeys send exactly this) |
+
+The watcher's hotkeys need `pip install -r requirements.txt`. The same link+reload
+loop also works without the watcher: `python scripts/stash_pricer.py --detect`
+detects the running client, links the filter into its install and reloads — it reads
+the client's `ProjectDiablo.cfg` for the actual reload binding (falls back to
+Numpad 0). A client restart exists only as `--restart-client` — **explicit opt-in
+only**, never wired to a hotkey, because killing the client risks a hardcore
+character and is never needed to reload a filter.
 
 Hotkeys use the `keyboard` package (in `requirements.txt`). If PD2 runs as
 Administrator, the watcher must run elevated too (re-register the scheduled task from
