@@ -91,6 +91,8 @@ Alias[GG_TIER2_FX]: %BORDER-4A%%MAP-4A%%SOUNDID-4719%
 Alias[GG_TIER3_FX]: %BORDER-9B%%MAP-7D%%SOUNDID-4733%
 Alias[GG_MONEY_TAG]: %GOLD%GG %RED%MONEY%GOLD% > 1 HR
 Alias[GG_SLAM_GRAB]: %RED%[SLAM]%WHITE%
+Alias[GG_SLAM_STAR]: %RED%O O O %NAME% %RED%O O O
+Alias[GG_SLAM_FX]: %GG_SLAM_STAR%%SOUNDID-4721%
 Alias[GG_PRICE_HEADER]: %GOLD%GG DEEP DELVE %WHITE%S14 %GRAY%prices: pd2trader.com
 Alias[FX_UNID_BOSS]: %SOUNDID-4733%
 Alias[PK1_VALUE]: 0.3
@@ -886,6 +888,17 @@ ItemDisplay[UNI !ID uuc]: %CONTINUE%Warriv's Warder
 ItemDisplay[UNI !ID uml]: %CONTINUE%Blackoak Shield
 ItemDisplay[UNI !ID urg]: %CONTINUE%Twilights Reflection
 ItemDisplay[UNI !ID uit]: %CONTINUE%Stormshield
+// ==== GG SLAM STAR (v0.3.0) - unid slam-target uniques show RED stars on the
+// ground + the gamble sound; tune the sound via Alias[GG_SLAM_FX] (audition
+// candidates in game with .playsound <id>) ====
+ItemDisplay[UNI !ID uap]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Shako - corrupt with a WSS%CL%%GOLD%measured: +skills 30 HR | all-res 10 HR | CBF 1.0%CL%%GRAY%ID it, hover, then slam}
+ItemDisplay[UNI !ID ci3]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Griffons Eye - corrupt with a WSS%CL%%GOLD%measured: CBF 2.5 | AR 2.0 | max-cold 2.0}
+ItemDisplay[UNI !ID urn]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Crown of Ages - corrupt with a WSS%CL%%GOLD%measured: CBF 15 HR | max-hp% 12 | +skills 3.0}
+ItemDisplay[UNI !ID uit]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Stormshield - corrupt with a WSS%CL%%GOLD%measured: fire-res 2.5 | CBF 0.5 | sockets 0.3}
+ItemDisplay[UNI !ID umc]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Verdungos - corrupt with a WSS%CL%%GOLD%measured: max-fire-res 3.5 (20x clean)}
+ItemDisplay[UNI !ID xtb]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%War Traveler - corrupt with a WSS%CL%%GOLD%measured: max-cold 3.5 | mana-regen 3.25 | block 2.75}
+ItemDisplay[UNI !ID ci2]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Kiras Guardian - corrupt with a WSS%CL%%GOLD%measured: CBF 1.5 | sockets 0.5 | +skills 0.5}
+ItemDisplay[UNI !ID uhm]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Veil of Steel or Nightwings - corrupt with a WSS%CL%%GOLD%Nightwings measured: +skills 5.0 (12.5x)}
 ItemDisplay[UNI !ID upk]: %CONTINUE%Spike Thorn
 ItemDisplay[UNI !ID uow]: %CONTINUE%Medusas Gaze
 ItemDisplay[UNI !ID ush]: %CONTINUE%Head Hunters Glory
@@ -2348,6 +2361,16 @@ ItemDisplay[UNI jew ID STAT331>4 STAT335>4]: %GG_TIER3_FX% %NAME%{%NAME%%CL%%GG_
 ItemDisplay[UNI jew ID STAT332>4 STAT336>4]: %GG_TIER3_FX% %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%TAN%5/5 Poison Facet%CL%%GOLD%Est: 3.47 HR (perfect roll)%CL%%GRAY%comps: pd2trader (refresh via Sync_PD2_Filter)}
 ItemDisplay[UNI jew ID (STAT329+STAT330+STAT331+STAT332+STAT333+STAT334+STAT335+STAT336)>6]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%TAN%4/5 Facet Est: ~0.95 HR%CL%%GRAY%comps: pd2trader (refresh via Sync_PD2_Filter)}
 ItemDisplay[UNI ID ETH]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%TAN%Ethereal: market premium (or eth self-use)%CL%%GRAY%S14: eth bases are slam/RW targets}
+// ==== GG SLAM WARNINGS (v0.3.0) - uncorrupted slam targets: measured outcomes ====
+ItemDisplay[UNI ID uap STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - measured 2026-11-18%CL%%GOLD%+Skills: 30 HR (300x clean)%CL%%GOLD%+All Res: 10 HR (100x)%CL%%GOLD%Cannot Freeze: 1 HR (10x)%CL%%GOLD%Sockets: 0.25 HR (2.5x)%CL%%GRAY%clean median 0.10 - slam is random, these are the money outcomes}
+ItemDisplay[UNI ID amu ALLSK=2 RES>24 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - measured%CL%%GOLD%+Skills: 13 HR (26x clean)%CL%%GOLD%Max Fire Res: 9.5 HR (19x)%CL%%GOLD%Cold Res: 6.1 HR (12x)%CL%%GOLD%All Res: 3.5 HR (7x)%CL%%GRAY%clean median 0.50}
+ItemDisplay[UNI ID urn STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - measured%CL%%GOLD%Cannot Freeze: 15 HR (20x clean)%CL%%GOLD%Max HP%: 12 HR (16x)%CL%%GOLD%+Skills: 3 HR (4x)%CL%%GRAY%clean median 0.75}
+ItemDisplay[UNI ID umc STAT36>9 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - measured%CL%%GOLD%Max Fire Res: 3.5 HR (20x clean)%CL%%GOLD%IAS/MF/FHR: 0.5 HR (2.9x)%CL%%GRAY%clean median 0.17}
+ItemDisplay[UNI ID uit STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - measured%CL%%GOLD%Fire Res: 2.5 HR (16.8x clean)%CL%%GOLD%Cannot Freeze: 0.5 HR (3.3x)%CL%%GOLD%Sockets: 0.3 HR (2x)%CL%%GRAY%clean median 0.15}
+ItemDisplay[UNI ID xtb STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - measured%CL%%GOLD%Max Cold Res: 3.5 HR (4.7x clean)%CL%%GOLD%Mana Regen: 3.25 HR (4.3x)%CL%%GOLD%Block Rate: 2.75 HR (3.7x)%CL%%GRAY%clean median 0.75}
+ItemDisplay[UNI ID ci2 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - measured%CL%%GOLD%Cannot Freeze: 1.5 HR (8.6x clean)%CL%%GOLD%Sockets: 0.5 HR (2.9x)%CL%%GOLD%+Skills: 0.5 HR (2.9x)%CL%%GRAY%clean median 0.17}
+ItemDisplay[UNI ID ci3 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - measured%CL%%GOLD%Cannot Freeze: 2.5 HR (2.7x clean)%CL%%GOLD%AR: 2.0 HR (2.2x)%CL%%GOLD%Max Cold: 2.0 HR (2.2x)%CL%%GRAY%clean median 0.93}
+ItemDisplay[UNI ID uhm STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS (Nightwings) - measured%CL%%GOLD%+Skills: 5 HR (12.5x clean)%CL%%GRAY%Veil of Steel or Nightwings base}
 ItemDisplay[UNI ID SOCK>0]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%TAN%%SOCKETS%% socket(s): premium or runeword base%CL%%GRAY%comps: pd2trader (refresh via Sync_PD2_Filter)}%CONTINUE%
 ItemDisplay[UNI ID STAT360>0]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%TAN%Corrupted: premium if top slam, brick otherwise%CL%%GRAY%comps: pd2trader (refresh via Sync_PD2_Filter)}%CONTINUE%
 ItemDisplay[SET ID (ETH OR SOCK>0 OR STAT360>0)]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%TAN%Eth / socketed / corrupted set piece: slam or runeword value%CL%%GRAY%comps: pd2trader (refresh via Sync_PD2_Filter)}

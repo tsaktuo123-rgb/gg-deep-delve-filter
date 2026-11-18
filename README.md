@@ -193,6 +193,13 @@ sounds were stripped from them (zero false positives).
 Corruption is random, so the system tells you **what the measured market pays for the
 money outcomes** — then it's your roll:
 
+- **In game, on the ground — the RED STAR (v0.3.0):** unidentified drops of the
+  slam-target unique bases (Shako, Griffon's, Crown of Ages, Stormshield,
+  Verdungo's, War Traveler, Kira's, Nightwing's/Veil of Steel) show
+  **red stars** around the name and play the **slam sound** before you pick
+  them up — the game knows the base even pre-ID, so you never miss a slam
+  candidate while mapping. Tune the sound with `Alias[GG_SLAM_FX]` in the
+  filter (audition candidates in game with `.playsound <id>`).
 - **In game, on the ground (any strictness, including Lvl 6):** a red **[SLAM]** tag
   marks every drop you should not walk past — magic weapons/amulets/rings/circlets
   ILVL 84+ (corruption slam targets: +2 skills / sockets), 4-socket shields (Spirit /
