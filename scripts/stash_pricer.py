@@ -477,44 +477,44 @@ def valuate_lines(lines, hours=168):
                 line.get('unresolvedReason'))
     return out, d
 
-COMP_CACHE = {}                                        # name -> (ts, median, sample)
+COMP_CACHE = {}                                        # name -> (ts, sorted prices)
 COMP_TTL = 3600                                        # re-query market comps hourly
 
 
-def market_comp_ask(name):
+def market_comp_ask(name, pct=25):
     """Live market comps by exact item name: what OTHER sellers ask right now
     (live listings only, priced > 0, newest first). Returns
-    (median, p25, p75, sample) or None below 3 comps.
-    This refutes linear stack pricing for bulk unique stacks - measured
-    2026-11-18: Basilisk's Quill 131x valuate-priced 18.34 HR while the market
-    asks 0.10-0.70 HR for 100-345x stacks and a 511x stack SOLD at 0.15 HR
-    (three transient 18.34 asks were other bots with the same linear bug)."""
+    (percentile_price, p25, median, sample) or None below 3 comps.
+    The percentile price is the COMPETITIVE ask: pct=25 undercuts ~75% of the
+    market (median-ask pricing is structurally non-competitive - measured
+    2026-11-18: a Basilisk's Quill stack SOLD at 0.15 while the ask median
+    sat at 0.20 and linear math claimed 18.34)."""
     if not name:
         return None
     cached = COMP_CACHE.get(name)
     if cached and time.time() - cached[0] < COMP_TTL:
-        return cached[1]
-    q = urllib.parse.urlencode({
-        'type': 'item', '$limit': '40',
-        'item.name[$regex]': '^%s$' % re.escape(name),
-        'accepted_offer_id': 'null',
-        'is_ladder': 'true', 'is_hardcore': 'false',
-        'hr_price[$gt]': '0', '$sort[bumped_at]': '-1'})
-    try:
-        _, d = http_json(PD2_API_BASE + '/market/listing?' + q)
-    except Exception:                                   # noqa: BLE001
-        return None
-    prices = sorted(l['hr_price'] for l in (d.get('data') or [])
-                    if isinstance(l.get('hr_price'), (int, float)) and l['hr_price'] > 0)
-    if len(prices) < 3:
-        return None
-    med = prices[len(prices) // 2]
-    p25 = prices[max(0, len(prices) // 4)]
-    p75 = prices[min(len(prices) - 1, 3 * len(prices) // 4)]
-    result = (med, p25, p75, len(prices))
-    COMP_CACHE[name] = (time.time(), result)
-    time.sleep(0.05)                                       # polite per fresh query
-    return result
+        prices = cached[1]
+    else:
+        q = urllib.parse.urlencode({
+            'type': 'item', '$limit': '40',
+            'item.name[$regex]': '^%s$' % re.escape(name),
+            'accepted_offer_id': 'null',
+            'is_ladder': 'true', 'is_hardcore': 'false',
+            'hr_price[$gt]': '0', '$sort[bumped_at]': '-1'})
+        try:
+            _, d = http_json(PD2_API_BASE + '/market/listing?' + q)
+        except Exception:                               # noqa: BLE001
+            return None
+        prices = sorted(l['hr_price'] for l in (d.get('data') or [])
+                        if isinstance(l.get('hr_price'), (int, float)) and l['hr_price'] > 0)
+        if len(prices) < 3:
+            return None
+        COMP_CACHE[name] = (time.time(), prices)
+        time.sleep(0.05)                                # polite per fresh query
+    idx = min(len(prices) - 1, int(len(prices) * pct / 100))
+    return (round(prices[idx], 4), round(prices[0], 4),
+            round(prices[max(0, len(prices) // 4)], 4),
+            round(prices[len(prices) // 2], 4), len(prices))
 
 
 def networth_sync(token, account, is_ladder=True, is_hardcore=False):
@@ -957,6 +957,7 @@ def scan_once(token, env, tab_filter=None, full=False):
             PROBE_CAP, len(probe_items) - PROBE_CAP, PROBE_CAP))
     priced_items = []
     aps = appraise_rares(rare_items) if rare_items else {}
+    ask_pct = max(1, min(99, int(env.get('GG_ASK_PERCENTILE', '25'))))
     val_inputs = set(l['item'] for l in val_lines)
     for it in fresh:
         it2 = dict(it)
@@ -1024,11 +1025,16 @@ def scan_once(token, env, tab_filter=None, full=False):
         # math said 18.34 HR, the market says 0.20 HR.
         nm2 = it2.get('name')
         if nm2 and it2.get('quality') not in ('Rare', 'Craft'):
-            comp = market_comp_ask(nm2)
+            comp = market_comp_ask(nm2, pct=ask_pct)
             if comp:
-                med, p25, p75, n = comp
-                it2['hr'] = med
-                it2['confidence'] = 'market-comps(%d)' % n
+                pct_price, min_ask, p25, med, n = comp
+                pre = it2.get('hr') or 0
+                # user rule 2026-11-18: items under 1 HR sell DIRT CHEAP -
+                # undercut the whole market (the minimum live ask). 1 HR+
+                # items keep the competitive percentile.
+                it2['hr'] = min_ask if pre < 1.0 else pct_price
+                it2['confidence'] = 'market-comps(%d, %s)' % (
+                    n, 'min' if pre < 1.0 else 'p%d' % ask_pct)
         priced_items.append(it2)
     # cache
     for it in priced_items:
@@ -1428,7 +1434,7 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
                 for l in get_own_listings(token, user_id):
                     iid = str(((l.get('item') or {}).get('id')))
                     if iid and iid != 'None':
-                        own[iid] = l.get('_id')
+                        own[iid] = (l.get('_id'), l.get('hr_price'))
                 lookup_ok = True
                 break
             except Exception as e:                      # noqa: BLE001
@@ -1464,7 +1470,7 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
 
     # 1. delist: listings whose item left the stash OR fell out of the top N
     if do_delist and user_id:
-        for iid, lid in list(own.items()):
+        for iid, (lid, _p) in list(own.items()):
             if iid not in stash_ids or iid not in target_ids:
                 if actions >= max_actions:
                     print('  action cap (%d) reached mid-delist' % max_actions)
@@ -1482,12 +1488,9 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
                 time.sleep(2.5)
 
     # 2. post: target items not yet listed
-    own = {str(iid): lid for iid, lid in own.items() if iid in target_ids}
+    own = {str(iid): (lid, p) for iid, (lid, p) in own.items() if iid in target_ids}
     for r in target:
         iid = str(r['item']['id'])
-        if iid in own:
-            kept += 1
-            continue
         if actions >= max_actions:
             print('  action cap (%d) reached mid-post' % max_actions)
             break
@@ -1509,6 +1512,26 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
         # the note ('Nx o.b.o.'). Ranking still uses the stack total above.
         qty = it.get('qty') or 1
         post_price = round(r['ask'] / qty, 4) if qty > 1 else round(r['ask'], 2)
+        # self-repricing: a live listing whose price drifted >10% from the
+        # current model (dirt-cheap sub-1HR / percentile / comp refresh) is
+        # delisted now and reposted at the new price within the same tick
+        if iid in own and do_delist:
+            lid, cur = own[iid]
+            if isinstance(cur, (int, float)) and cur > 0 and \
+                    abs(cur - post_price) > max(0.02, 0.10 * post_price) and \
+                    actions < max_actions:
+                st = delete_listing(token, lid)
+                actions += 1
+                own.pop(iid)
+                if st in (200, 204):
+                    delisted.append({'name': it.get('name'), 'reason': 'repriced'})
+                    print('  [REPRICED] %-28r was %.2f -> %.2f' % (
+                        it.get('name'), cur, post_price))
+                else:
+                    continue                    # could not delist - keep the old listing
+            else:
+                kept += 1                       # price still current - nothing to do
+                continue
         try:
             listing = post_listing(token, raw, account, post_price, note)
             lid = (listing or {}).get('_id') or (listing or {}).get('id')
