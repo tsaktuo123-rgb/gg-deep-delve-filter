@@ -568,9 +568,11 @@ def scan_once(token, env, tab_filter=None, full=False):
             PROBE_CAP, len(probe_items) - PROBE_CAP, PROBE_CAP))
     priced_items = []
     aps = appraise_rares(rare_items) if rare_items else {}
+    val_inputs = set(l['item'] for l in val_lines)
     for it in fresh:
         it2 = dict(it)
         q = it['quality']
+        nm_val = it.get('code') if q == 'Currency' else (it.get('name') or it.get('base_name'))
         if q in ('Rare', 'Craft'):
             ap = aps.get(it['id']) or {}
             band = ap.get('band') or ap.get('priceBand') or {}
@@ -584,14 +586,8 @@ def scan_once(token, env, tab_filter=None, full=False):
                 it2['low'], it2['hr'], it2['high'], it2['confidence'] = p
             else:
                 it2['hr'], it2['needs_probe'] = 0, True
-        elif q in ('Unique', 'Set', 'Currency', 'Material') or it.get('runeword'):
-            # currency items price by their API code (lowercase, e.g. r27/wss/t31);
-            # display names must NEVER be the valuation input (fuzzy-match hazard)
-            if q == 'Currency':
-                nm = it.get('code')
-            else:
-                nm = it.get('name') or it.get('base_name')
-            hr, conf = priced.get(nm, (None, None))[:2]
+        elif nm_val in val_inputs or q in ('Unique', 'Set', 'Currency', 'Material') or it.get('runeword'):
+            hr, conf = priced.get(nm_val, (None, None))[:2]
             it2['confidence'] = conf
             it2['hr'] = hr if isinstance(hr, (int, float)) else 0
         else:
