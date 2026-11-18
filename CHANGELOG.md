@@ -4,6 +4,29 @@ All notable changes to the GG DEEP DELVE Project Diablo 2 filter project.
 Base: HiimFilter (Hyper) Season 14 build 247. Every original rule is preserved;
 all changes are additive or value/threshold updates.
 
+## v0.1.4 — 2026-11-18
+
+### Value from ALL tabs (user rule)
+- **Character personal stashes are now reachable** — verified live via the
+  hook's own socket flow (`wss://api.projectdiablo2.com`, websocket transport
+  REQUIRED: polling 400s 'Session ID unknown' behind the load balancer;
+  python-socketio needs a TUPLE for flat multi-args). Personal-stash items
+  merge into the scan as listable (the hook lists from them; PD2 reports them
+  as 'Shared Stash' page 0 in listings).
+- **Character inventory/cube** (public REST `game/character/<name>`): scanned
+  and priced every cycle, shown in the dashboard as `<Char> (Inventory)`.
+  NOT auto-listed by default — gated behind `GG_ALLOW_INVENTORY=1` because
+  the market transfer path for inventory items is unverified, and the first
+  GG item there is the user's active Annihilus (1.17 HR).
+- **Equipped gear ('Unknown' storage) and mercenaries: never scanned** — worn
+  and not tradeable.
+- **The PD2 currency dict is NOT a holdings source**: its counts are a stale
+  game-save snapshot (claimed 15x Sigil of Madawc / 5x Festering Essence of
+  Destruction AFTER those stacks had sold; user confirmed not owning them).
+  It remains priced for the dashboard, but ownership/listing comes only from
+  real item objects (stash pages + character sources).
+- Verified cycle: 329 items (+23 character-held), 39.69 HR, 3 GG.
+
 ## v0.1.3 — 2026-11-18
 
 ### Ownership fix (user-reported: "items I don't even own")

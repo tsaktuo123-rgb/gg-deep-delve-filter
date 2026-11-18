@@ -196,7 +196,101 @@ class TokenExpired(Exception):
     pass
 
 # ------------------------------------------------------------------ stash fetch (VERIFIED)
-def fetch_stash_items(token, account, base=None):
+def is_personal_stash_location(loc):
+    """PD2 reports a character's personal stash as 'Shared Stash' page 0 (the
+    shared stash's own pages are 1-9) both in game/character and in listings
+    made from it - the hook's isPersonalStashLocation, verified 2026-11-18."""
+    storage = ((loc or {}).get('storage') or '')
+    return storage.lower().replace('personal ', '') == 'stash' or \
+        (storage.lower() == 'shared stash' and (loc or {}).get('stash_page') == 0)
+
+
+def socket_personal_stash(token, characters):
+    """Reads each character's PERSONAL STASH over the hook's socket flow.
+    Verified live 2026-11-18: websocket transport is REQUIRED - polling 400s
+    with 'Session ID unknown' because the socket.io server runs behind a load
+    balancer without sticky sessions (each poll can hit another node). Flow:
+      connect wss://api.projectdiablo2.com (websocket) ->
+      emit('create', ('security/session', {'strategy': 'oauth', 'accessToken': token})) ->
+      emit('get', ('game/character', <name>, {})) per character.
+    python-socketio packs a TUPLE as flat multi-args (a list would nest them
+    and the server rejects the service path). Returns {char: [personal items]}.
+    """
+    import socketio, threading
+    out = {}
+    sio = socketio.Client(logger=False, engineio_logger=False)
+    state = {'connected': threading.Event(), 'authed': threading.Event(), 'err': None}
+
+    @sio.event
+    def connect():
+        state['connected'].set()
+
+        def on_create(err=None, *a):
+            state['err'] = err
+            state['authed'].set()
+        sio.emit('create', ('security/session',
+                            {'strategy': 'oauth', 'accessToken': token}),
+                 callback=on_create)
+
+    try:
+        sio.connect('wss://api.projectdiablo2.com', transports=['websocket'],
+                    wait_timeout=25)
+        if not state['connected'].wait(15):
+            raise RuntimeError('socket: no connect event in 15s')
+        if not state['authed'].wait(20):
+            raise RuntimeError('socket: no auth ack in 20s')
+        if state['err']:
+            raise RuntimeError('socket auth refused: %r' % state['err'])
+        for ch in characters:
+            done = threading.Event()
+            res = {}
+
+            def on_get(err=None, *a, _d=done, _r=res):
+                _r['err'] = err
+                _r['d'] = a[0] if a else None
+                _d.set()
+            sio.emit('get', ('game/character', ch, {}), callback=on_get)
+            if not done.wait(25):
+                raise RuntimeError('socket: no answer for %s in 25s' % ch)
+            if res.get('err'):
+                raise RuntimeError('socket get %s: %r' % (ch, res['err']))
+            items = (res.get('d') or {}).get('items') or []
+            out[ch] = [it for it in items if is_personal_stash_location(it.get('location'))]
+    finally:
+        try:
+            sio.disconnect()
+        except Exception:                                   # noqa: BLE001
+            pass
+    return out
+
+
+def char_item(it, character, tab):
+    """Normalize a character-held item to the same shape as shared-stash items."""
+    base_obj = it.get('base') or {}
+    loc = it.get('location') or {}
+    mods = [(m.get('name'), (m.get('values') or [0])[0]) for m in it.get('modifiers', [])
+            if m.get('name')]
+    return {
+        'character': character,
+        'tab': tab,
+        'pos': loc.get('zone', ''),
+        'code': base_obj.get('id'),
+        'name': it.get('name') or base_obj.get('name') or base_obj.get('id'),
+        'base_name': base_obj.get('name'),
+        'quality': (it.get('quality') or {}).get('name') or '',
+        'ilvl': it.get('item_level'),
+        'sockets': it.get('socketed_count') or 0,
+        'ethereal': bool(it.get('is_ethereal')),
+        'identified': bool(it.get('is_identified')),
+        'runeword': bool(it.get('is_runeword')),
+        'modifiers': mods,
+        'id': str(it.get('id')),
+        'raw': it,
+        'qty': it.get('quantity') or 1,
+    }
+
+
+def fetch_stash_items(token, account, base=None, env=None):
     """GET /game/stash/<account> - verified working (275 items, currency tab)."""
     url = (base or PD2_API_BASE).rstrip('/') + '/game/stash/' + account
     try:
@@ -304,6 +398,45 @@ def fetch_stash_items(token, account, base=None):
         items.append({'character': 'Currency Tab', 'tab': tab, 'pos': code,
                       'code': code, 'name': disp, 'base_name': disp, 'quality': 'Currency',
                       'qty': n, 'id': 'cur-' + '-'.join(path) + '-%d' % n})
+    # ---- character-held value (user rule: value from ALL tabs, 2026-11-18)
+    # Reachability measured: personal stashes = socket-only (hook-proven
+    # listing path, so listable); inventory/cube = public REST (scanned +
+    # priced; listed only with GG_ALLOW_INVENTORY=1 - the market transfer
+    # path for inventory items is UNVERIFIED); equipped ('Unknown' storage)
+    # and mercenary = NEVER (worn, not tradeable). The currency dict's counts
+    # are a stale game-save snapshot (it claimed 15x Sigil of Madawc after
+    # the stack had sold) and must not be trusted for ownership.
+    try:
+        _, acct = http_json(PD2_API_BASE + '/game/account/' + account)
+        chars = [c.get('name') for c in (acct.get('details') or [])
+                 if c.get('hardcore') is False and c.get('ladder') is True
+                 and c.get('name')]
+    except Exception:                                       # noqa: BLE001
+        chars = []
+    if chars:
+        try:
+            sock = socket_personal_stash(token, chars)
+            for ch in chars:
+                for it in sock.get(ch, []):
+                    items.append(char_item(it, ch, '%s (Personal)' % ch))
+        except Exception as e:                              # noqa: BLE001
+            print('  personal-stash socket read failed: %r' % e)
+        # inventory/cube: scanned and PRICED always (dashboard visibility);
+        # auto-listed only when GG_ALLOW_INVENTORY=1 (no_list gate)
+        allow_inv = str((env or {}).get('GG_ALLOW_INVENTORY', '0')).strip().lower() \
+            in ('1', 'true', 'yes')
+        for ch in chars:
+            try:
+                _, d = http_json(PD2_API_BASE + '/game/character/' + ch)
+                for it in (d.get('items') or []):
+                    if (it.get('location') or {}).get('storage') not in \
+                            ('Inventory', 'Horadric Cube'):
+                        continue
+                    row = char_item(it, ch, '%s (Inventory)' % ch)
+                    row['no_list'] = not allow_inv
+                    items.append(row)
+            except Exception as e:                          # noqa: BLE001
+                print('  char inventory read failed for %s: %r' % (ch, e))
     return items
 
 # ------------------------------------------------------------------ pricing (VERIFIED public endpoints)
@@ -588,7 +721,7 @@ def scan_once(token, env, tab_filter=None, full=False):
     account = env.get('PD2_ACCOUNT_NAME', '')
     if not account:
         raise RuntimeError('PD2_ACCOUNT_NAME missing in .env (needed for /game/stash/<account>)')
-    items = fetch_stash_items(token, account)
+    items = fetch_stash_items(token, account, env=env)
     if tab_filter:
         items = [it for it in items if tab_filter.lower() in it.get('tab', '').lower()
                  or tab_filter.lower() in (it.get('name') or '').lower()]
@@ -1132,12 +1265,12 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
     # slots" rule: VENDOR items are junk by definition)
     ranked = [r for r in rows if r['ask'] > 0 and r['item'].get('id')
               and r['standing'] in ('GG', 'CHECK')
-              and r['item'].get('raw')                    # ONLY items physically
-              # in the shared stash may be listed. Synthetic currency-walk rows
-              # (boss/essence mats living outside the shared stash, measured
-              # 2026-11-18: dict counts != stash contents) posted phantom
-              # listings with unnamed cards for items the user could not even
-              # trade from the stash tab.
+              and r['item'].get('raw')                    # ONLY real item objects
+              # (shared stash + character personal stashes) may be listed.
+              # Synthetic currency-walk rows (raw-less) posted phantom listings
+              # with unnamed cards for mats the user could not even trade from
+              # the stash tab - measured 2026-11-18, 4 phantoms delisted.
+              and not r['item'].get('no_list')            # inventory: priced, listed only with GG_ALLOW_INVENTORY=1
               and not str(r['item'].get('code', '')).startswith('r')]
     ranked.sort(key=lambda r: -r['ask'])
     target = ranked[:target_n]
