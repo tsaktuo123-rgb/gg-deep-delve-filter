@@ -513,6 +513,7 @@ def market_comp_ask(name):
     p75 = prices[min(len(prices) - 1, 3 * len(prices) // 4)]
     result = (med, p25, p75, len(prices))
     COMP_CACHE[name] = (time.time(), result)
+    time.sleep(0.05)                                       # polite per fresh query
     return result
 
 
@@ -1013,12 +1014,17 @@ def scan_once(token, env, tab_filter=None, full=False):
             it2['hr'] = hr if isinstance(hr, (int, float)) else 0
         else:
             it2['hr'], it2['needs_probe'] = 0, True           # deferred past the probe cap
-        # bulk unique stacks: linear per-unit x qty overprices them - the live
-        # market decides (measured 2026-11-18: quill 131x linear-math 18.34 HR
-        # vs market asks 0.10-0.70 for whole stacks, a 511x stack SOLD 0.15)
-        if (it2.get('hr') or 0) > 0.5 and (it.get('qty') or 1) > 1 \
-                and it2.get('quality') == 'Unique':
-            comp = market_comp_ask(it2.get('name'))
+        # EVERY priced item is checked against the live market (user rule,
+        # 2026-11-18: market data for everything, so pricing mistakes cannot
+        # persist). >= 3 live asks of the same item name -> the market's
+        # median ask IS the price; below that the pipeline price stands.
+        # Rares/crafts keep their roll-based appraisal (the same generated
+        # name recurs across accounts with different rolls, so name comps
+        # would price the wrong roll). Measured anchor: the quill - linear
+        # math said 18.34 HR, the market says 0.20 HR.
+        nm2 = it2.get('name')
+        if nm2 and it2.get('quality') not in ('Rare', 'Craft'):
+            comp = market_comp_ask(nm2)
             if comp:
                 med, p25, p75, n = comp
                 it2['hr'] = med
