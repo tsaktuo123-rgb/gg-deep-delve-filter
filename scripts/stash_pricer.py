@@ -486,22 +486,43 @@ SOLD_FILE = REPO / 'sold_market.json'
 SOLD_TTL = 1800                                        # refresh the sold corpus every 30 min
 SOLD_MAX_PAGES = 15                                    # 15x100 = up to 1500 recent solds
 SOLD_CACHE = {'rows': None, 'ts': 0}
+# Owner's user_id (loaded from stash_cache.json at runtime) - own sales are
+# excluded from pricing evidence to prevent self-pollution (D1)
+OWNER_USER_ID = None
 
 
-def fetch_sold_market(max_pages=SOLD_MAX_PAGES):
+def fetch_sold_market(max_pages=SOLD_MAX_PAGES, owner_user_id=None):
     """The market's SOLD corpus (accepted offers), newest first. Rows carry
     name, base, quality, sockets, eth, corrupted, hr_price (only when the
     listing was PRICED - o.b.o. solds prove sellability but not the amount),
-    and updated_at. Cached to sold_market.json + memory (30 min TTL)."""
+    seller_id (to exclude own sales from evidence), and updated_at.
+    Cached to sold_market.json + memory (30 min TTL)."""
+    global OWNER_USER_ID
+    if owner_user_id is not None:
+        OWNER_USER_ID = owner_user_id
+    elif OWNER_USER_ID is None:
+        # Try to load from stash_cache.json
+        if CACHE.exists():
+            try:
+                cache_data = json.loads(CACHE.read_text(encoding='utf-8'))
+                OWNER_USER_ID = cache_data.get('user_id')
+            except Exception:
+                pass
     now = time.time()
-    if SOLD_CACHE['rows'] is not None and now - SOLD_CACHE['ts'] < SOLD_TTL:
+    # If we have an owner_user_id, we need rows with seller_id to exclude own sales.
+    # Check if cached rows have seller_id; if not, force refetch.
+    need_refetch = owner_user_id is not None or OWNER_USER_ID is not None
+    if SOLD_CACHE['rows'] is not None and now - SOLD_CACHE['ts'] < SOLD_TTL and not need_refetch:
         return SOLD_CACHE['rows']
     disk = None
     if SOLD_FILE.exists():
         try:
             disk = json.loads(SOLD_FILE.read_text(encoding='utf-8'))
-            if now - disk.get('ts', 0) < SOLD_TTL:
-                SOLD_CACHE['rows'] = disk.get('rows') or []
+            disk_rows = disk.get('rows') or []
+            # Check if disk rows have seller_id (new format)
+            has_seller_id = disk_rows and 'seller_id' in disk_rows[0]
+            if now - disk.get('ts', 0) < SOLD_TTL and (not need_refetch or has_seller_id):
+                SOLD_CACHE['rows'] = disk_rows
                 SOLD_CACHE['ts'] = disk.get('ts', 0)
                 return SOLD_CACHE['rows']
         except Exception:                               # noqa: BLE001
@@ -511,6 +532,7 @@ def fetch_sold_market(max_pages=SOLD_MAX_PAGES):
                                 'is_ladder': 'true', 'is_hardcore': 'false',
                                 '$sort[updated_at]': '-1'})
     rows = []
+    owner_sold_count = 0
     for page in range(max_pages):
         qq = q + '&$skip=%d' % (page * 100)
         try:
@@ -520,6 +542,11 @@ def fetch_sold_market(max_pages=SOLD_MAX_PAGES):
         data = d.get('data') or []
         for l in data:
             it = l.get('item') or {}
+            seller_id = l.get('user_id')
+            # D1: exclude owner's own sales from evidence corpus
+            if OWNER_USER_ID and seller_id == OWNER_USER_ID:
+                owner_sold_count += 1
+                continue
             rows.append({
                 'name': (it.get('name') or '').strip(),
                 'base': ((it.get('base') or {}).get('name') or '').strip(),
@@ -531,10 +558,13 @@ def fetch_sold_market(max_pages=SOLD_MAX_PAGES):
                 'corrupted': bool(it.get('corrupted')),
                 'hr': l.get('hr_price') if isinstance(l.get('hr_price'), (int, float)) else None,
                 'at': (l.get('updated_at') or '')[:10],
+                'seller_id': seller_id,
             })
         if len(data) < 100:
             break
         time.sleep(0.2)
+    if owner_sold_count:
+        print('  sold corpus: excluded %d own sales (user_id=%s)' % (owner_sold_count, OWNER_USER_ID))
     if rows:
         SOLD_CACHE['rows'] = rows
         SOLD_CACHE['ts'] = now
@@ -553,10 +583,11 @@ def sold_comps(item, window_days=7):
       cat tier:  the item's CATEGORY sold volume (broad-demand fallback)
     Gate passes on any tier with real volume. Ranking uses the most specific
     volume available. Price evidence comes from the most specific tier with
-    enough PRICED solds (o.b.o. solds prove demand but not the amount)."""
+    enough PRICED solds (o.b.o. solds prove demand but not the amount).
+    Returns provenance for dashboard audit (D6): name/base + count + median + last sold date."""
     rows = fetch_sold_market()
     empty = {'count': 0, 'priced': 0, 'median': None, 'vol_name': 0, 'vol_type': 0,
-             'vol_cat': 0, 'tier': 'none', 'last': ''}
+             'vol_cat': 0, 'tier': 'none', 'last': '', 'provenance': {}}
     if not rows:
         return empty
     q = item.get('quality') or ''
@@ -590,11 +621,24 @@ def sold_comps(item, window_days=7):
         median = round(statistics.median(priced_typed), 4) if len(priced_typed) >= 2 else None
     tier = 'name' if named else ('type' if typed else ('cat' if cat_rows else 'none'))
     hits = named or typed or cat_rows
+    
+    # D6: Price provenance for dashboard audit
+    provenance = {
+        'tier': tier,
+        'name': nm if tier == 'name' else (bn if tier == 'type' else cat),
+        'total_sold': len(hits),
+        'priced_sold': len(priced_named) + len(priced_typed),
+        'median_hr': median,
+        'last_sold': max((r.get('at') or '') for r in hits) if hits else '',
+        'unit_median': unit_median,
+    }
+    
     return {'count': len(hits), 'priced': len(priced_named) + len(priced_typed),
             'median': median, 'unit_median': unit_median,
             'vol_name': len(named), 'vol_type': len(typed), 'vol_cat': len(cat_rows),
             'tier': tier,
-            'last': max((r.get('at') or '') for r in hits) if hits else ''}
+            'last': max((r.get('at') or '') for r in hits) if hits else '',
+            'provenance': provenance}
 
 
 def market_comp_ask(name, pct=25):
@@ -881,7 +925,14 @@ def esc(s):
 
 def write_dashboard(state):
     now = datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
-    total = sum(it.get('hr') or 0 for it in state.get('items', []))
+    # NET VALUE = the verified server figure (pd2trader's own engine) when
+    # available — the owner's rule: never fabricate a net value. The per-item
+    # server prices below remain for the listing gates.
+    srv = state.get('server_total')
+    total = srv if isinstance(srv, (int, float)) else \
+        sum(it.get('hr') or 0 for it in state.get('items', [])
+            if it.get('hr') is not None
+            and not (it.get('confidence') == 'server(low)'))
     banner = ''
     if state.get('token_expired'):
         banner = ('<div style="background:#7a1010;color:#fff;padding:12px 16px;font-weight:bold">'
@@ -897,25 +948,45 @@ def write_dashboard(state):
         rows_html.append('<h2>%s &rsaquo; %s <small>(%s HR)</small></h2><table border=1 cellpadding=4 '
                          'style="border-collapse:collapse;font-family:Consolas,monospace;font-size:13px">'
                          '<tr><th>Pos</th><th>Item</th><th>Quality</th><th>iLvl</th><th>Value (HR)</th>'
-                         '<th>WSS &asymp;</th><th>Listing note (copy)</th></tr>'
+                         '<th>WSS &asymp;</th><th>Price Source (audit)</th><th>Listing note (copy)</th></tr>'
                          % (esc(char), esc(tab), round(sub, 2)))
         md_rows.append('\n## %s › %s — %s HR\n' % (char, tab, round(sub, 2)))
-        md_rows.append('| Pos | Item | Quality | iLvl | Value (HR) | Listing note |')
-        md_rows.append('|---|---|---|---|---|---|')
+        md_rows.append('| Pos | Item | Quality | iLvl | Value (HR) | Price Source | Listing note |')
+        md_rows.append('|---|---|---|---|---|---|---|')
         for it in sorted(items, key=lambda x: -(x.get('hr') or 0)):
             note = 'wts %s' % it.get('name', '')
             if it.get('hr'):
                 note += ' // %s HR' % round(it['hr'], 2)
+            # D6: Price provenance for audit
+            prov = ''
+            sc = it.get('sold') or {}
+            prov_data = sc.get('provenance') or {}
+            if prov_data:
+                tier = prov_data.get('tier', 'none')
+                if tier != 'none':
+                    src_name = prov_data.get('name', '')
+                    total_sold = prov_data.get('total_sold', 0)
+                    priced_sold = prov_data.get('priced_sold', 0)
+                    median_hr = prov_data.get('median_hr')
+                    last_sold = prov_data.get('last_sold', '')
+                    if median_hr is not None:
+                        prov = '%s: %d sold (%d priced), median %.2f HR, last %s' % (
+                            tier, total_sold, priced_sold, median_hr, last_sold)
+                    else:
+                        prov = '%s: %d sold (%d priced), last %s' % (
+                            tier, total_sold, priced_sold, last_sold)
             rows_html.append('<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td>'
-                             '<td><b>%s</b></td><td>%s</td>'
+                             '<td><b>%s</b></td><td>%s</td><td title="%s">%s</td>'
                              '<td><input style="width:340px" readonly value="%s" onclick="this.select()"></td></tr>'
                              % (esc(it.get('pos', '')), esc(it.get('name', '')),
                                 esc(it.get('quality', '')), esc(it.get('ilvl', '')),
                                 esc(round(it.get('hr') or 0, 2)),
-                                esc(int(round((it.get('hr') or 0) * 100))), esc(note)))
-            md_rows.append('| %s | %s | %s | %s | %s | `%s` |' % (
+                                esc(int(round((it.get('hr') or 0) * 100))),
+                                esc(prov), esc(prov[:60] + ('…' if len(prov) > 60 else '')),
+                                esc(note)))
+            md_rows.append('| %s | %s | %s | %s | %s | `%s` | `%s` |' % (
                 it.get('pos', ''), it.get('name', ''), it.get('quality', ''),
-                it.get('ilvl', ''), round(it.get('hr') or 0, 2), note))
+                it.get('ilvl', ''), round(it.get('hr') or 0, 2), prov, note))
         rows_html.append('</table>')
         md_rows.append('')
     # equipped-gear standalone section: priced (jewels rolled in), never listed
@@ -942,20 +1013,31 @@ def write_dashboard(state):
                                round(r['hr'], 2), r['socketed']))
         equipped_html += '</table>'
         equipped_md += '\n'
+    srv = state.get('server_total')
+    srv_line = ''
+    if isinstance(srv, (int, float)):
+        srv_line = ('<div style="background:#0f2a12;color:#9fe8a8;padding:8px 16px;margin-bottom:10px">'
+                    '<b>Net worth: %.2f HR</b> — verified from the pd2trader engine%s</div>'
+                    % (srv, (' · %s items unpriced by the server (excluded from its total)'
+                             % state.get('server_unpriced')) if state.get('server_unpriced') else ''))
     html_doc = ('<!doctype html><meta charset="utf-8"><title>GG DEEP DELVE - Stash Prices</title>'
                 '<meta http-equiv="refresh" content="60">'
                 '<style>body{background:#0b0b10;color:#eee;font-family:Segoe UI,Consolas;margin:24px}'
                 'h1{color:#FFD700} h2{color:#9B9BFF} small{color:#999} input{font-family:Consolas}</style>'
-                + banner +
-                '<h1>GG DEEP DELVE - Live Stash Pricing <small>updated %s &middot; total %s HR &middot; '
+                + banner + srv_line +
+                '<h1>GG DEEP DELVE - Live Stash Pricing <small>updated %s &middot; net worth %s HR &middot; '
                 'auto-refresh 60s</small></h1>' % (now, round(total, 2))
                 + ''.join(rows_html) + equipped_html +
                 '<p><small>values: pd2trader.com ladder SC (public API); stash data: your PD2 account '
                 'via the pd2trader-app token; rares appraised with exact rolls.</small></p>')
     DASH_HTML.write_text(html_doc, encoding='utf-8')
-    md = ('# GG DEEP DELVE - Stash Prices\n\nupdated %s — total %s HR\n\n'
+    md = ('# GG DEEP DELVE - Stash Prices\n\nupdated %s — net worth %s HR (verified: pd2trader engine)\n\n'
           'values: pd2trader.com ladder SC (public API); rares appraised with exact rolls.\n'
           % (now, round(total, 2)))
+    if isinstance(srv, (int, float)):
+        md += ('\n**Verified server net worth: %.2f HR** (pd2trader engine)%s\n'
+               % (srv, (' · %s items unpriced by the server' % state.get('server_unpriced'))
+                  if state.get('server_unpriced') else ''))
     if state.get('token_expired'):
         md += '\n**Token Expired — Refresh via --import-token**\n'
     DASH_MD.write_text(md + '\n'.join(md_rows) + equipped_md, encoding='utf-8')
@@ -982,6 +1064,21 @@ def scan_once(token, env, tab_filter=None, full=False):
             cache = json.loads(CACHE.read_text(encoding='utf-8'))
         except Exception:                                   # noqa: BLE001
             cache = {}
+    # D1: Load owner's user_id from cache and pre-fetch sold market corpus
+    # with own-sales excluded. This ensures the corpus is fresh before pricing.
+    owner_user_id = cache.get('user_id')
+    if owner_user_id:
+        fetch_sold_market(owner_user_id=owner_user_id)
+    else:
+        # Fallback: try to resolve from a live listing
+        try:
+            if token:
+                owner_user_id = resolve_user_id(token)
+                if owner_user_id:
+                    cache['user_id'] = owner_user_id
+                    fetch_sold_market(owner_user_id=owner_user_id)
+        except Exception:
+            pass
     seen = cache.get('items', {})
     fresh = []
     for it in items:
@@ -996,9 +1093,19 @@ def scan_once(token, env, tab_filter=None, full=False):
     # whole stash and appraises every rare; join keys verified above). Legacy
     # valuate/probe paths stay as fallback for anything the server leaves unpriced.
     nw_lines, nw_rares, all_val_lines = {}, {}, []
+    server_total = None
+    server_unpriced = None
     try:
-        nw_lines, nw_rares, all_val_lines = networth_join(
-            networth_sync(token, env.get('PD2_ACCOUNT_NAME', '')))
+        _sync = networth_sync(token, env.get('PD2_ACCOUNT_NAME', ''))
+        nw_lines, nw_rares, all_val_lines = networth_join(_sync)
+        # the server's own net worth (verified anchor): pd2trader's engine
+        # values the stash itself - this is the headline number, ours is not
+        _val = _sync.get('valuation') or {}
+        server_total = _val.get('totalHr')
+        server_unpriced = _val.get('unpricedCount')
+        if isinstance(server_total, (int, float)):
+            print('  server net worth: %.2f HR (unpriced by server: %s)'
+                  % (server_total, server_unpriced))
     except Exception as e:                                  # noqa: BLE001
         print('  networth sync failed (%r) - falling back to legacy pricing' % e)
     # currency-panel rows: server-vouched mats (misc/uber/keys) that live in
@@ -1011,91 +1118,33 @@ def scan_once(token, env, tab_filter=None, full=False):
                          and (it.get('name') or '').strip().lower() in panel_names)]
         fresh.extend(panel)
         print('  panel rows: %d (server-vouched currency-panel mats)' % len(panel))
-    # ---- pricing
-    val_lines = []
+    # ---- pricing (v0.4.2: SERVER-ONLY VALUES — the pd2trader engine is the
+    # source of truth; the items it leaves unpriced stay unpriced here too,
+    # never fabricated). Only rares missing from the server appraisal get the
+    # synthesized-batch fallback.
     rare_items = []
-    probe_items = []
     for it in fresh:
         q = it.get('quality')
-        tab = it.get('tab') or ''
         _raw = it.get('raw') or {}
         _loc = _raw.get('location') or {}
         _pos = _raw.get('position') or {}
-        nw_covered = (str(_raw.get('hash') or '') in nw_lines
-                      or (q in ('Rare', 'Craft') and
-                          (_loc.get('stash_page'), _pos.get('column'), _pos.get('row')) in nw_rares))
-        if q in ('Rare', 'Craft'):
-            if not nw_covered:
-                rare_items.append(it)                   # server appraised; skip synthesized batch
-        elif it.get('panel'):
-            continue                                    # server-priced at creation; no legacy call
-        elif tab == 'Maps':
-            # standard tier maps are NOT tracked by pd2trader's valuation -
-            # their codes fuzzy-resolve to runes. Excluded from listing.
-            it['hr'] = 0
-            it['untracked'] = True
-            continue
-        elif nw_covered:
-            continue                                    # server-priced; no legacy API call needed
-        elif q in ('Unique', 'Set', 'Currency', 'Material') or it.get('runeword'):
-            nm = it.get('code') if q == 'Currency' else (it.get('name') or it.get('base_name'))
-            val_lines.append({'item': nm, 'qty': it.get('qty', 1), 'it': it})
-            if tab in ('Gems',) or q == 'Gem':
-                probe_items.append(it)
-        elif it.get('qty', 1) > 1 and it.get('name'):
-            # stacked items (uber mats, crafting mats with qty>1): valuate handles qty natively
-            nm = it.get('name') or it.get('base_name')
-            val_lines.append({'item': nm, 'qty': it.get('qty', 1), 'it': it})
-        else:
-            probe_items.append(it)                       # magic/normal/superior/gems -> price-check
-    dedup = {}
-    for l in val_lines:
-        dedup.setdefault((l['item'], l.get('qty', 1)), []).append(l['it'])
-    priced, _ = valuate_lines([{'item': k[0], 'qty': k[1]} for k in dedup])
-    # probe every remaining item with pd2trader's price-check (exact comps:
-    # base + quality + sockets + ethereal), rate-limited, capped per cycle
-    probed = {}
-    PROBE_CAP = 250
-    for it in probe_items[:PROBE_CAP]:
-        try:
-            body = {'item': it.get('code') or it.get('base_name'), 'quality': it.get('quality'),
-                    'sockets': it.get('sockets', 0) or None, 'ethereal': it.get('ethereal') or None,
-                    'isLadder': True, 'isHardcore': False, 'hours': 168}
-            body = {k: v for k, v in body.items() if v not in (None, False, 0)}
-            _, d = http_json(PRICE_CHECK_URL, body=body)
-            e = d.get('estimateHr') or {}
-            probed[it['id']] = (e.get('low'), e.get('mid'), e.get('high'), d.get('confidence'))
-        except Exception:                                   # noqa: BLE001
-            probed[it['id']] = None
-        time.sleep(0.45)
-    if len(probe_items) > PROBE_CAP:
-        print('  probes: %d done this cycle, %d deferred (cap %d)' % (
-            PROBE_CAP, len(probe_items) - PROBE_CAP, PROBE_CAP))
+        if q in ('Rare', 'Craft') and (
+                (_loc.get('stash_page'), _pos.get('column'), _pos.get('row')) not in nw_rares):
+            rare_items.append(it)
     priced_items = []
     aps = appraise_rares(rare_items) if rare_items else {}
-    ask_pct = max(1, min(99, int(env.get('GG_ASK_PERCENTILE', '25'))))
-    val_inputs = set(l['item'] for l in val_lines)
     for it in fresh:
         it2 = dict(it)
         q = it['quality']
-        # currency-walk (dict) rows price by DISPLAY NAME: the raw leaf code
-        # fuzzy-matches ('valuate("destruction")' priced a ghost 1.3 HR GG on
-        # an essence the user does not own - measured 2026-11-18). Names the
-        # server tracks resolve; ghosts resolve to 0, which is honest.
-        nm_val = (it.get('name') or it.get('base_name')) if \
-            str(it.get('id', '')).startswith('cur-') else \
-            (it.get('code') if q == 'Currency' else (it.get('name') or it.get('base_name')))
         raw = it.get('raw') or {}
         loc = raw.get('location') or {}
         pos = raw.get('position') or {}
         rare_key = (loc.get('stash_page'), pos.get('column'), pos.get('row'))
         nw_line = nw_lines.get(str(raw.get('hash') or ''))
-        if it.get('panel'):
-            it2['hr'] = it.get('hr') or 0               # priced from the server's own panel line
-            it2['confidence'] = it.get('confidence')
-        elif q in ('Rare', 'Craft'):
-            # server appraisal first (the hook's verdict/rank/band); synthesized
-            # batch stays as fallback when the item wasn't in the sync response
+        server_priced = False
+        if q in ('Rare', 'Craft'):
+            # the server's own rare appraisal (rank + market band); the
+            # synthesized batch is fallback coverage for rares it skipped
             sr = nw_rares.get(rare_key)
             ap = aps.get(it['id']) or {}
             if sr:
@@ -1112,89 +1161,64 @@ def scan_once(token, env, tab_filter=None, full=False):
             it2['appraisal'] = ap
             band = ap.get('band') or {}
             hr = band.get('mid') or band.get('high') or band.get('low')
-            it2['hr'] = hr if isinstance(hr, (int, float)) else 0
-        elif nw_line is not None and isinstance(nw_line.get('unitPrice'), (int, float)):
-            # server-priced: unitPrice is per unit; value is for the whole line
+            if isinstance(hr, (int, float)) and hr > 0:
+                it2['hr'] = round(hr, 4)
+                it2['confidence'] = ('server-rare(rank %.2f)' % sr.get('rank')) if sr \
+                    else 'appraisal-fallback'
+                it2['samples'] = (sr.get('market') or {}).get('sampleSize') if sr else None
+                server_priced = True
+            else:
+                it2['hr'] = None
+                it2['unpriced'] = True
+        elif nw_line is not None and isinstance(nw_line.get('unitPrice'), (int, float)) \
+                and nw_line['unitPrice'] > 0:
+            # SERVER-PRICED (verified anchor): the pd2trader engine's own
+            # valuation, hash-joined. Nothing overrides it. Lines the server
+            # marks low-confidence are displayed but NOT sellable and NOT
+            # counted in the total (mirrors the server's own net-worth rule).
             it2['hr'] = round(nw_line['unitPrice'] * it.get('qty', 1), 4)
-            it2['confidence'] = nw_line.get('confidence')
+            it2['confidence'] = 'server(%s)' % nw_line.get('confidence')
+            it2['samples'] = nw_line.get('sampleCount')
             it2['nw'] = {'key': nw_line.get('key'), 'sampleCount': nw_line.get('sampleCount'),
                          'change7d': nw_line.get('priceChange7dPercent')}
-        elif it['id'] in probed:
-            p = probed[it['id']]
-            if p:
-                it2['low'], it2['hr'], it2['high'], it2['confidence'] = p
+            server_priced = nw_line.get('confidence') in ('ok', 'fixed')
+        elif it.get('panel'):
+            hr = it.get('hr')
+            if isinstance(hr, (int, float)) and hr > 0:
+                it2['hr'] = hr
+                it2['confidence'] = 'server-panel'
+                server_priced = True
             else:
-                it2['hr'], it2['needs_probe'] = 0, True
-        elif nm_val in val_inputs or q in ('Unique', 'Set', 'Currency', 'Material') or it.get('runeword'):
-            hr, conf = priced.get(nm_val, (None, None))[:2]
-            it2['confidence'] = conf
-            it2['hr'] = hr if isinstance(hr, (int, float)) else 0
+                it2['hr'] = None
+                it2['unpriced'] = True
         else:
-            it2['hr'], it2['needs_probe'] = 0, True           # deferred past the probe cap
-        # EVERY priced item is checked against the live market (user rule,
-        # 2026-11-18: market data for everything, so pricing mistakes cannot
-        # persist). >= 3 live asks of the same item name -> the market's
-        # median ask IS the price; below that the pipeline price stands.
-        # Rares/crafts keep their roll-based appraisal (the same generated
-        # name recurs across accounts with different rolls, so name comps
-        # would price the wrong roll). Measured anchor: the quill - linear
-        # math said 18.34 HR, the market says 0.20 HR.
-        nm2 = it2.get('name')
-        if nm2 and it2.get('quality') not in ('Rare', 'Craft'):
-            comp = market_comp_ask(nm2, pct=ask_pct)
-            if comp:
-                pct_price, min_ask, p25, med, n = comp
-                pre = it2.get('hr') or 0
-                # user rule 2026-11-18: items under 1 HR sell DIRT CHEAP -
-                # undercut the whole market (the minimum live ask). 1 HR+
-                # items keep the competitive percentile.
-                it2['hr'] = min_ask if pre < 1.0 else pct_price
-                it2['confidence'] = 'market-comps(%d, %s)' % (
-                    n, 'min' if pre < 1.0 else 'p%d' % ask_pct)
-        # sold-market gates (v0.4.0): the item must have RECENT SALE evidence
-        # of its type, and the ask anchors to what actually sold (priced
-        # solds) when two or more exist - asks lie, solds do not.
-        try:
-            sc = sold_comps(it2, window_days=int(env.get('GG_SALE_WINDOW_DAYS', '7')))
-        except Exception as e:                              # noqa: BLE001
-            print('  sold-comps failed for %r: %r' % (it2.get('name'), e))
-            sc = {'count': 0, 'priced': 0, 'median': None, 'vol_name': 0,
-                  'vol_type': 0, 'vol_cat': 0, 'tier': 'none', 'last': ''}
-        it2['sold'] = sc
-        sold_min_vol = max(1, int(env.get('GG_SOLD_MIN_VOL', '3')))
-        it2['sale_ok'] = sc['vol_name'] >= 1 or sc['vol_type'] >= sold_min_vol
-        # stackables: the TOTAL stack value (unit evidence x our stack size)
-        # is what the gates judge - the unit price is only the posting format
-        if sc.get('unit_median') is not None and (it2.get('qty') or 1) > 1:
-            it2['hr'] = round(sc['unit_median'] * it2['qty'], 4)
-            it2['confidence'] = 'sold-unit-median(%d sold, %d priced) x %d' % (
-                sc['count'], sc['priced'], it2['qty'])
-        if sc['median'] is not None and sc['priced'] >= int(env.get('GG_SOLD_PRICE_MIN', '2')):
-            pre2 = it2.get('hr') or 0
-            if pre2 < 1.0:
-                it2['hr'] = round(min(sc['median'], pre2) if pre2 else sc['median'], 4)
-            else:
-                it2['hr'] = sc['median']
-            it2['confidence'] = 'sold-median(%d sold, %d priced)' % (sc['count'], sc['priced'])
+            # the server leaves this unpriced (its own low-confidence gate) -
+            # mirrored honestly: unpriced here too, never fabricated
+            it2['hr'] = None
+            it2['unpriced'] = True
+        it2['sale_ok'] = server_priced
         priced_items.append(it2)
-    # gate 2 (v0.4.0): price floor 0.25 HR, with the volume exception - an
-    # item priced under the floor still lists when its sold volume ranks in
-    # the top 75% of the gate-1 pool (user rule: every item gets a chance)
+    # gate 2 (v0.4.2): price floor 0.25 HR, with the API-NATIVE volume
+    # exception - the server's own sampleCount per valuation line. An item
+    # under the floor still lists when its line's sample count ranks in the
+    # top 75% of the server-priced pool (user rule: every item gets a chance)
     floor = float(env.get('GG_LIST_FLOOR', '0.25'))
     top_pct = min(99, max(1, int(env.get('GG_VOL_TOP_PCT', '75'))))
+    # D5 NOTE: lower GG_VOL_TOP_PCT = STRICTER (cutoff moves up toward median).
+    # top_pct=75 -> 25th percentile (top 75% qualify)
+    # top_pct=50 -> 50th percentile/median (top 50% qualify) - STRICTER
 
     def eff_vol(it):
-        s = it.get('sold') or {}
-        return s.get('vol_name', 0) or s.get('vol_type', 0) or s.get('vol_cat', 0)
+        return it.get('samples') or 0
 
-    vols = sorted(eff_vol(it) for it in priced_items if it.get('sale_ok'))
+    vols = sorted(eff_vol(it) for it in priced_items if it.get('sale_ok') and eff_vol(it) > 0)
     if vols:
         vol_cutoff = vols[min(len(vols) - 1, int(len(vols) * (100 - top_pct) / 100))]
     else:
         vol_cutoff = 0
     for it in priced_items:
         it['list_ok'] = bool(it.get('sale_ok')) and (
-            (it.get('hr') or 0) >= floor or eff_vol(it) >= vol_cutoff)
+            (it.get('hr') or 0) >= floor or (eff_vol(it) > 0 and eff_vol(it) >= vol_cutoff))
     n_floor = sum(1 for it in priced_items if it.get('list_ok') and (it.get('hr') or 0) >= floor)
     n_vol = sum(1 for it in priced_items if it.get('list_ok') and (it.get('hr') or 0) < floor)
     print('gate 2: %d listable (%d by price >= %.2f HR, %d by volume top-%d%%)'
@@ -1209,7 +1233,8 @@ def scan_once(token, env, tab_filter=None, full=False):
     # keep raw stash objects for the instant-sell hotkey (F7) and auto-listing
     cache['raw_items'] = {it['id']: it.get('raw') for it in items if it.get('raw')}
     CACHE.write_text(json.dumps(cache, indent=1), encoding='utf-8')
-    state = {'items': priced_items, 'token_expired': False, 'last_scan': cache['last_scan']}
+    state = {'items': priced_items, 'token_expired': False, 'last_scan': cache['last_scan'],
+             'server_total': server_total, 'server_unpriced': server_unpriced}
     # equipped-gear valuation: STANDALONE (toggle GG_SCAN_EQUIPPED / F5) - worn
     # items are priced for information only and never listed or ranked, so the
     # 45 rotation slots are never spent on them (user rule 2026-11-18)
