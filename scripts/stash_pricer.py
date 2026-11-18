@@ -641,10 +641,11 @@ def sold_comps(item, window_days=7):
             'provenance': provenance}
 
 
-def market_comp_ask(name, pct=25):
+def market_comp_ask(name, pct=25, exclude_uid=None):
     """Live market comps by exact item name: what OTHER sellers ask right now
-    (live listings only, priced > 0, newest first). Returns
-    (percentile_price, p25, median, sample) or None below 3 comps.
+    (live listings only, priced > 0, newest first, the owner's OWN listings
+    excluded so the baseline never anchors to ourselves). Returns
+    (percentile_price, min_ask, p25, median, sample) or None below 3 comps.
     The percentile price is the COMPETITIVE ask: pct=25 undercuts ~75% of the
     market (median-ask pricing is structurally non-competitive - measured
     2026-11-18: a Basilisk's Quill stack SOLD at 0.15 while the ask median
@@ -666,7 +667,9 @@ def market_comp_ask(name, pct=25):
         except Exception:                               # noqa: BLE001
             return None
         prices = sorted(l['hr_price'] for l in (d.get('data') or [])
-                        if isinstance(l.get('hr_price'), (int, float)) and l['hr_price'] > 0)
+                        if isinstance(l.get('hr_price'), (int, float)) and l['hr_price'] > 0
+                        and (not exclude_uid
+                             or str(l.get('user_id') or '') != str(exclude_uid)))
         if len(prices) < 3:
             return None
         COMP_CACHE[name] = (time.time(), prices)
@@ -1198,6 +1201,27 @@ def scan_once(token, env, tab_filter=None, full=False):
             it2['unpriced'] = True
         it2['sale_ok'] = server_priced
         priced_items.append(it2)
+    # steal baseline (user rule 2026-11-18: everything priced just under
+    # Fair): the POSTING price = the median ask of OTHER sellers (ours
+    # excluded) x the discount (default 0.87 = the bottom edge of Fair).
+    # The MINIMUM ask was measured to overshoot into bait/mistake territory
+    # (a Shaftstop listing at 0.03 vs a 0.43 market median) - the median is
+    # the Fair reference, the discount puts us just under it.
+    owner_uid = cache.get('user_id')
+    discount = float(env.get('GG_FAIR_DISCOUNT', '0.87'))
+    n_base = 0
+    for it in priced_items:
+        nm = it.get('name')
+        if not nm or it.get('quality') in ('Rare', 'Craft') or it.get('hr') is None:
+            continue
+        comp = market_comp_ask(nm, exclude_uid=owner_uid)
+        if comp:
+            fair = comp[3]                                   # median ask of others = Fair
+            target = round(fair * discount, 4)
+            if it['hr'] > target:
+                it['post_price'] = target
+                n_base += 1
+    print('steal baseline: %d item(s) priced under Fair (x%.2f discount)' % (n_base, discount))
     # gate 2 (v0.4.2): price floor 0.25 HR, with the API-NATIVE volume
     # exception - the server's own sampleCount per valuation line. An item
     # under the floor still lists when its line's sample count ranks in the
@@ -1708,8 +1732,10 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
         # stacked items post at the UNIT price (that is what people search;
         # buyers do the qty math at trade time) - the quantity is already in
         # the note ('Nx o.b.o.'). Ranking still uses the stack total above.
+        # The steal baseline (post_price) is the posting price when set.
         qty = it.get('qty') or 1
-        post_price = round(r['ask'] / qty, 4) if qty > 1 else round(r['ask'], 2)
+        want_total = it.get('post_price') or r['ask']
+        post_price = round(want_total / qty, 4) if qty > 1 else round(want_total, 2)
         # self-repricing: a live listing whose price drifted >10% from the
         # current model (dirt-cheap sub-1HR / percentile / comp refresh) is
         # delisted now and reposted at the new price within the same tick
