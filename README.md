@@ -188,7 +188,31 @@ sounds were stripped from them (zero false positives).
   elite chest with `+2 All Skills` (`STAT360=50/27`, `ALLSK>1`) or 4 sockets on a
   top-half base plays the **money** sound.
 
-### 3.3 The automation loop
+### 3.3 The slam system (v0.3.0) — corrupt with a Worldstone Shard
+
+Corruption is random, so the system tells you **what the measured market pays for the
+money outcomes** — then it's your roll:
+
+- **In game, on the ground (any strictness, including Lvl 6):** a red **[SLAM]** tag
+  marks every drop you should not walk past — magic weapons/amulets/rings/circlets
+  ILVL 84+ (corruption slam targets: +2 skills / sockets), 4-socket shields (Spirit /
+  Phoenix bases — Monarch is top-half), 3-socket claws (Chaos), 0-socket ethereal
+  elite weapons (Larzuk-slam into runeword bases), and rare helms/chests ILVL 84+
+  (the watcher prices and lists these).
+- **In game, on hover:** identified **uncorrupted** slam-target uniques show a
+  `[SLAM]` tag with the **measured post-corruption asks** (clean median vs each
+  corruption's median, from live market comps, 2026-11-18): Shako +skills → 30 HR
+  (300× clean), Mara's +skills → 13 HR (26×), Crown of Ages CBF → 15 HR (20×),
+  Verdungo's maxfire → 3.5 HR (20×), Stormshield fire-res → 2.5 HR (16.8×),
+  Nightwing's +skills → 5 HR (12.5×), War Traveler maxcold → 3.5 HR (4.7×),
+  Kira's CBF → 1.5 HR (8.6×), Griffon's CBF → 2.5 HR (2.7×). Corruption is random —
+  the shown values are the money outcomes, not guarantees.
+- **From the watcher:** every newly-seen, uncorrupted GG unique/craft pops the
+  in-game toast + chime — *SLAM IT* — with the item's price.
+- Some rows rest on thin samples (a single ask); the sync refreshes them and the
+  sample-size gate keeps unmeasured items out of the warnings.
+
+### 3.4 The automation loop
 
 - **`sync_pd2_prices.py`** pulls live prices (ladder SC, 7-day average), rewrites the
   value aliases in `GG_DEEP_DELVE.filter`, refreshes the rare-guide ladder brackets and
