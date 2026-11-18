@@ -514,7 +514,7 @@ def fetch_sold_market(max_pages=SOLD_MAX_PAGES):
     for page in range(max_pages):
         qq = q + '&$skip=%d' % (page * 100)
         try:
-            d = http_json(PD2_API_BASE + '/market/listing?' + qq)
+            _, d = http_json(PD2_API_BASE + '/market/listing?' + qq)
         except Exception:                               # noqa: BLE001
             break
         data = d.get('data') or []
@@ -524,6 +524,8 @@ def fetch_sold_market(max_pages=SOLD_MAX_PAGES):
                 'name': (it.get('name') or '').strip(),
                 'base': ((it.get('base') or {}).get('name') or '').strip(),
                 'quality': (it.get('quality') or {}).get('name') or '',
+                'cat': (it.get('category') or '').strip().lower(),
+                'qty': it.get('quantity') or 1,
                 'sockets': it.get('socketed_count') or 0,
                 'eth': bool(it.get('is_ethereal')),
                 'corrupted': bool(it.get('corrupted')),
@@ -544,32 +546,54 @@ def fetch_sold_market(max_pages=SOLD_MAX_PAGES):
 
 
 def sold_comps(item, window_days=7):
-    """Sale evidence for one item (user's two gates, v0.4.0):
-      gate A (sellable):  any item of this type sold within the window
-      gate B (price):     median of recent PRICED solds of the same type
-    Comp matching: exact name for uniques/sets/panel mats; base name + quality
-    for rares/crafts/magic/bases (their generated names recur with different
-    rolls, so base+quality is the honest comparable)."""
+    """Sale evidence with TIERED volume (v0.4.0 gate 1, user rule: generalize
+    by sold volume - the most important gate):
+      name tier: exact-name solds (a named unique's own demand)
+      type tier: base+quality solds (the item type's demand)
+      cat tier:  the item's CATEGORY sold volume (broad-demand fallback)
+    Gate passes on any tier with real volume. Ranking uses the most specific
+    volume available. Price evidence comes from the most specific tier with
+    enough PRICED solds (o.b.o. solds prove demand but not the amount)."""
     rows = fetch_sold_market()
+    empty = {'count': 0, 'priced': 0, 'median': None, 'vol_name': 0, 'vol_type': 0,
+             'vol_cat': 0, 'tier': 'none', 'last': ''}
     if not rows:
-        return {'count': 0, 'priced': 0, 'median': None}
-    q = it.get('quality') or ''
-    nm = (it.get('name') or '').strip().lower()
-    bn = (it.get('base_name') or '').strip().lower()
-    if q in ('Unique', 'Set', 'Currency'):
-        key = nm
-    else:
-        key = bn or nm
+        return empty
+    q = item.get('quality') or ''
+    nm = (item.get('name') or '').strip().lower()
+    bn = (item.get('base_name') or '').strip().lower()
+    cat = ((item.get('raw') or {}).get('category') or '').strip().lower()
     cutoff = (datetime.now(timezone.utc) - timedelta(days=window_days)).strftime('%Y-%m-%d')
-    hits = [r for r in rows if (r.get('name') or '').strip().lower() == key
-            and (r.get('at') or '') >= cutoff]
-    if not hits and q not in ('Unique', 'Set', 'Currency'):
-        hits = [r for r in rows if (r.get('base') or '').strip().lower() == bn
-                and (r.get('quality') or '') == q
-                and (r.get('at') or '') >= cutoff]
-    priced = sorted(r['hr'] for r in hits if isinstance(r.get('hr'), (int, float)) and r['hr'] > 0)
-    median = round(statistics.median(priced), 4) if len(priced) >= 2 else None
-    return {'count': len(hits), 'priced': len(priced), 'median': median,
+
+    def in_window(r):
+        return (r.get('at') or '') >= cutoff
+
+    named = [r for r in rows if (r.get('name') or '').strip().lower() == nm and in_window(r)]
+    typed = []
+    if q not in ('Unique', 'Set', 'Currency'):
+        typed = [r for r in rows if (r.get('base') or '').strip().lower() == bn
+                 and (r.get('quality') or '') == q and in_window(r)]
+    cat_rows = [r for r in rows if (r.get('cat') or '') == cat and in_window(r)] if cat else []
+    priced_named = [r['hr'] for r in named if isinstance(r.get('hr'), (int, float)) and r['hr'] > 0]
+    median = round(statistics.median(priced_named), 4) if len(priced_named) >= 2 else None
+    unit_median = None
+    if median is not None and (item.get('qty') or 1) > 1:
+        # stackable: price evidence is per-unit (solds come in different stack
+        # sizes; the unit price is the comparable) - the caller scales it by
+        # OUR stack size for the total
+        units = sorted(r['hr'] / max(1, r.get('qty') or 1) for r in named
+                       if isinstance(r.get('hr'), (int, float)) and r['hr'] > 0)
+        unit_median = round(statistics.median(units), 4) if len(units) >= 2 else None
+    priced_typed = []
+    if median is None:
+        priced_typed = [r['hr'] for r in typed if isinstance(r.get('hr'), (int, float)) and r['hr'] > 0]
+        median = round(statistics.median(priced_typed), 4) if len(priced_typed) >= 2 else None
+    tier = 'name' if named else ('type' if typed else ('cat' if cat_rows else 'none'))
+    hits = named or typed or cat_rows
+    return {'count': len(hits), 'priced': len(priced_named) + len(priced_typed),
+            'median': median, 'unit_median': unit_median,
+            'vol_name': len(named), 'vol_type': len(typed), 'vol_cat': len(cat_rows),
+            'tier': tier,
             'last': max((r.get('at') or '') for r in hits) if hits else ''}
 
 
@@ -1132,11 +1156,19 @@ def scan_once(token, env, tab_filter=None, full=False):
         # solds) when two or more exist - asks lie, solds do not.
         try:
             sc = sold_comps(it2, window_days=int(env.get('GG_SALE_WINDOW_DAYS', '7')))
-        except Exception:                                   # noqa: BLE001
-            sc = {'count': 0, 'priced': 0, 'median': None}
+        except Exception as e:                              # noqa: BLE001
+            print('  sold-comps failed for %r: %r' % (it2.get('name'), e))
+            sc = {'count': 0, 'priced': 0, 'median': None, 'vol_name': 0,
+                  'vol_type': 0, 'vol_cat': 0, 'tier': 'none', 'last': ''}
         it2['sold'] = sc
-        sold_min = max(1, int(env.get('GG_SOLD_MIN', '1')))   # gate 1: the type sold at least once recently
-        it2['sale_ok'] = sc['count'] >= sold_min
+        sold_min_vol = max(1, int(env.get('GG_SOLD_MIN_VOL', '3')))
+        it2['sale_ok'] = sc['vol_name'] >= 1 or sc['vol_type'] >= sold_min_vol
+        # stackables: the TOTAL stack value (unit evidence x our stack size)
+        # is what the gates judge - the unit price is only the posting format
+        if sc.get('unit_median') is not None and (it2.get('qty') or 1) > 1:
+            it2['hr'] = round(sc['unit_median'] * it2['qty'], 4)
+            it2['confidence'] = 'sold-unit-median(%d sold, %d priced) x %d' % (
+                sc['count'], sc['priced'], it2['qty'])
         if sc['median'] is not None and sc['priced'] >= int(env.get('GG_SOLD_PRICE_MIN', '2')):
             pre2 = it2.get('hr') or 0
             if pre2 < 1.0:
@@ -1145,6 +1177,28 @@ def scan_once(token, env, tab_filter=None, full=False):
                 it2['hr'] = sc['median']
             it2['confidence'] = 'sold-median(%d sold, %d priced)' % (sc['count'], sc['priced'])
         priced_items.append(it2)
+    # gate 2 (v0.4.0): price floor 0.25 HR, with the volume exception - an
+    # item priced under the floor still lists when its sold volume ranks in
+    # the top 75% of the gate-1 pool (user rule: every item gets a chance)
+    floor = float(env.get('GG_LIST_FLOOR', '0.25'))
+    top_pct = min(99, max(1, int(env.get('GG_VOL_TOP_PCT', '75'))))
+
+    def eff_vol(it):
+        s = it.get('sold') or {}
+        return s.get('vol_name', 0) or s.get('vol_type', 0) or s.get('vol_cat', 0)
+
+    vols = sorted(eff_vol(it) for it in priced_items if it.get('sale_ok'))
+    if vols:
+        vol_cutoff = vols[min(len(vols) - 1, int(len(vols) * (100 - top_pct) / 100))]
+    else:
+        vol_cutoff = 0
+    for it in priced_items:
+        it['list_ok'] = bool(it.get('sale_ok')) and (
+            (it.get('hr') or 0) >= floor or eff_vol(it) >= vol_cutoff)
+    n_floor = sum(1 for it in priced_items if it.get('list_ok') and (it.get('hr') or 0) >= floor)
+    n_vol = sum(1 for it in priced_items if it.get('list_ok') and (it.get('hr') or 0) < floor)
+    print('gate 2: %d listable (%d by price >= %.2f HR, %d by volume top-%d%%)'
+          % (n_floor + n_vol, n_floor, floor, n_vol, top_pct))
     # cache
     for it in priced_items:
         seen[fingerprint(it)] = {'name': it.get('name'), 'hr': it.get('hr'),
@@ -1558,18 +1612,23 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
     # only GG + CHECK standing items get listed (the user's "don't waste sell
     # slots" rule: VENDOR items are junk by definition)
     ranked = [r for r in rows if r['ask'] > 0 and r['item'].get('id')
-              and r['standing'] in ('GG', 'CHECK')
+              and r['item'].get('list_ok')             # v0.4.0: gates 1+2 decide listability
+              # (the GG/CHECK label stays dashboard-only; a cheap-but-high-volume
+              # stack passes gate 2 by volume and must not be blocked here)
               and (r['item'].get('raw') or r['item'].get('panel'))
               # ONLY real item objects (shared stash + character personal
               # stashes) OR server-vouched currency-panel rows may be listed.
               # Synthetic currency-walk rows (raw-less, unvouched) posted
               # phantom listings - measured 2026-11-18, 4 phantoms delisted.
               and not str(r['item'].get('code', '')).startswith('r')
-              and r['item'].get('sale_ok')]               # v0.4.0 gate 1: the type sells recently
-    ranked.sort(key=lambda r: (-(r['item'].get('sold') or {}).get('count', 0), -r['ask']))
-    # v0.4.0: VOLUME FIRST (user rule) - the rotation is ranked by how many of
-    # that item's type sold this week, not by price. High-volume types sell
-    # fastest, so they take the slots; ask only breaks ties.
+              and r['item'].get('list_ok')]               # v0.4.0: gate 1 (volume) + gate 2 (price floor / volume exception)
+    ranked.sort(key=lambda r: (
+        -((r['item'].get('sold') or {}).get('vol_name', 0)
+          or (r['item'].get('sold') or {}).get('vol_type', 0)),
+        -r['ask']))
+    # v0.4.0: VOLUME FIRST (user rule) - the rotation is ranked by the sold
+    # volume of the item's most specific evidence tier (its own name, else its
+    # type), not by price. High-volume types sell fastest and take the slots.
     target = ranked[:target_n]
     target_ids = [r['item']['id'] for r in target]
 
