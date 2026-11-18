@@ -3,7 +3,10 @@
 A metadata-driven **price-check engine** built on the HiimFilter (Hyper) Season 14 filter.
 Every drop's ground label and hover tooltip reflects live Season 14 market value standards:
 3-tier drop audio, pre-ID metadata appraisals on drop, post-ID roll/slam appraisals on
-identify, and a hands-free stash/inventory watcher that keeps a live pricing dashboard.
+identify, and a hands-free watcher that prices your whole stash (all shared-stash pages
+and character personal stashes) with pd2trader's own deep-delve engine and keeps your
+**top-45 market rotation full automatically**. Current release: **v0.2.0** (full history
+in [CHANGELOG.md](CHANGELOG.md)).
 
 > **Working on this repo? Read [VISION.md](VISION.md) first** — every change here has
 > one law: make the player's session better. The backlog there is where the next QoL
@@ -61,7 +64,9 @@ any `.bat` below → **Create shortcut** → move the shortcut wherever you like
 | Script | What it does |
 |---|---|
 | `scripts\Sync_PD2_Filter.bat` | One-click **price refresh**: rewrites ~170 value aliases in the filter (and thresholds for the tier sounds) from live S14 market prices. Run it whenever, then press `Numpad 0` in game. |
-| `scripts\Price_My_Stash.bat --watch` | **Hands-free watcher**: polls your stash/inventory every 90 s *only while the game is open*, prices new items, updates the dashboard. (`--once` = one scan, `--check` = price the item on your clipboard) |
+| `scripts\Price_My_Stash.bat --watch` | **Hands-free watcher** (runs hidden via the logon task): scans every 90 s *only while the game is open*, prices items, maintains your **top-45 market rotation automatically** (posts high-value items, delists what falls out), updates the dashboard. (`--once` = one scan, `--check` = price the item on your clipboard) |
+| `scripts\Monitor_Watcher.cmd` | **Live feed window**: double-click to watch everything the watcher prices and posts in real time (tails `watcher.log`). Close it whenever — the watcher keeps running hidden. |
+| `scripts\Run_Watcher_Hidden.vbs` | Launches the watcher with **no visible window** — this is what the logon task runs. |
 | `scripts\Install_Auto_Watcher.bat` | Registers the watcher as a logon scheduled task (named *"GG Deep Delve Auto Watcher"* — remove with `schtasks /Delete /TN "GG Deep Delve Auto Watcher"`). |
 
 Setup:
@@ -190,12 +195,42 @@ sounds were stripped from them (zero false positives).
   unique roll estimates, and updates `CURRENCY_TIMESTAMP` + the cube header date.
   Refuses to write on any mismatch; `--dry-run` previews; rolling `*.sync-bak`
   backups are made before every write.
-- **`stash_pricer.py --watch`** polls your authenticated stash/inventory every 90 s
+- **`stash_pricer.py --watch`** polls your authenticated stash every 90 s
   **only while the game is running** (zero overhead when closed), hashes each item into
   `stash_cache.json` (gitignored) so only **new or newly identified** items trigger API
   queries, prices them against public pd2trader endpoints and updates
   `stash_prices.html` (auto-refresh 60 s) + `stash_prices.md`, grouped by character and
   stash tab with grid positions and one-click copyable listing notes.
+- **Deep-delve pricing (v0.2.0):** one call to pd2trader's server-side
+  `networth/sync` — the same engine the desktop app's hook uses — prices the whole
+  stash and appraises **every rare server-side** (verdict keep/check/vendor, predicted
+  rank percentile within its slot, market ask band with sample size). The watcher's
+  own deep-delve calls and join keys are verified against the live stash (item-hash
+  and page/position joins, 100% match).
+- **What gets scanned (v0.2.0 scope):**
+  - **Shared stash — every page.** The only auto-listed source by default.
+  - **Character personal stashes** — read over the signed-in socket (the same flow
+    the desktop app uses); anything there is priced and listed automatically.
+    PD2 only serves these to the owner's socket, so REST alone cannot see them.
+  - **Character inventory & cube — deliberately not scanned** (user decision:
+    nothing from the inventory is priced or listed). Equipped gear and
+    mercenaries are never scanned as inventory; worn *valuations* live in the
+    separate F5 toggle below.
+  - The game's currency-dict counts are **not** treated as holdings (they are a
+    stale save snapshot and have reported items that no longer exist).
+- **The top-45 market rotation (auto-sale):** every tick the watcher re-ranks
+  everything by live value and diffs against your live market listings — new
+  high-value items are posted and whatever fell out of the top 45 is delisted
+  (caps: 10 posts / 12 actions per tick; the market's own cap is 50). **Only
+  real item objects may be listed** — an item must exist in a stash the market
+  can deliver from, so phantom/unowned listings cannot happen (the rotation
+  audits ownership every cycle).
+- **Equipped gear (F5 toggle, standalone):** worn gear is priced with its
+  **socketed jewels and runes rolled into each item's price** (verified: a
+  Kira's Guardian with 3× Lightning Facet 3/4 prices at 4.19 HR with the
+  facets counted). It appears in a standalone dashboard section — *"worn, NOT
+  for sale"* — and is structurally excluded from standings and the rotation,
+  so it never spends a listing slot. F5 turns it on/off (saved to `.env`).
 - **Filter fallback:** if the live filter file is missing, run
   `python scripts/stash_pricer.py --init-filter` — it backs up the source filter
   (only if no backup exists yet) and re-initializes from it.
@@ -237,8 +272,11 @@ additionally be forced from the launcher (the BH loot-filter settings
 | Key | Where | What happens |
 |---|---|---|
 | **`Ctrl + C`** | in game (hovering an item) | PD2 copies the hovered item's full stats (JSON) to the Windows clipboard — native PD2 behaviour |
+| **`F5`** | global (watcher running) | **Equipped-gear toggle**: turns the standalone worn-gear valuation on/off (saved to `.env`). When on, the dashboard gains an *"Equipped gear — worn, NOT for sale"* section where every item's price includes its socketed jewels/runes. Never spends a market slot |
+| **`F6`** | global (watcher running) | **Scan & price everything now**: full scan (shared stash all pages + character personal stashes), deep-delve pricing, standings and dashboard refresh — no market actions — then a topmost toast with the totals (and your equipped-gear value when F5 is on) |
+| **`F7`** | global (watcher running) | **Instant-sell flow** for the item you're hovering |
 | **`F8`** | global (watcher running) | **Link & reload**: detects the *running* client's own folder, makes sure `GG_DEEP_DELVE.filter` is installed in that install's `filters\local`, then synthesizes the filter-reload keystroke into the game. One keypress links the whole engine together |
-| **`F9`** | global (watcher running) | **Sync & reload**: forces an immediate full cycle — re-pulls your stash/inventory, re-runs the price sync (live economy → filter aliases + thresholds), rebuilds the dashboard, plays a chime, then sends the reload keystroke automatically |
+| **`F9`** | global (watcher running) | **Sync & reload**: forces an immediate full cycle — re-pulls your stash, re-runs the price sync (live economy → filter aliases + thresholds), rebuilds the dashboard, plays a chime, then sends the reload keystroke automatically |
 | **`F10`** | global (watcher running) | reads the `Ctrl + C` clipboard copy, queries pd2trader's public **rare appraisal** (rares/crafts) and **price-check** (exact-stat comps) endpoints and pops a non-focus-stealing topmost toast with the live HR range + verdict. No alt-tabbing |
 | **`Numpad 0`** | in game | Native PD2 filter-reload (the F8/F9 hotkeys send exactly this) |
 
@@ -265,6 +303,10 @@ watcher still polls normally; F9/F10 are conveniences, not requirements.
   iLvl, live value in **HR** and ≈ **WSS**, and a **click-to-copy listing note**
   (paste straight into trade chat or the market listing).
 - The header shows the last update time and your **total stash value in HR**.
+- Character **personal stashes** appear as their own groups when they hold items.
+- **Equipped gear (F5 toggle on):** a standalone *"worn, NOT for sale"* section
+  where every worn item's price **includes its socketed jewels/runes** — your
+  gear's true value at a glance, kept out of the market rotation.
 - `stash_prices.md` mirrors it for pasting into Discord.
 
 ---
@@ -303,6 +345,16 @@ watcher still polls normally; F9/F10 are conveniences, not requirements.
 - Season 14 mechanics verified against wiki.projectdiablo2.com (STAT360 corruption IDs
   27/50/32, `%SOUNDID-n%` limitations, local-filter overwrite safety) and the official
   S14 patch notes (runewords, corruption changes).
+- **Deep-delve pricing (v0.2.0, measured 2026-11-17/18):** one `networth/sync` call
+  returned the whole stash priced (join keys verified 297/297 by item hash) and 73
+  rares appraised server-side (57 CHECK / 16 VENDOR); a verified cycle priced 353
+  items / 73.74 HR with the rotation at 45/45 owned listings.
+- **Ownership audit (measured):** every live market listing checked against the
+  current stash by item id — 0 of 45 reference unowned items; the phantom-listing
+  class (synthetic rows) is structurally excluded.
+- **Quiver stacks are real** (user-confirmed disbelief, resolved by data): the game
+  reuses arrow bases as stackable quivers — e.g. a unique Razor Arrows stack
+  (`aqv3`, qty 131) and War Bolts ×235 both exist and price as qty × unit.
 - **Known limitation, stated honestly:** ring/jewel unique names (SoJ, Raven Frost,
   Wisp…) share the `rin`/`jew` base code, so per-unique ID'd tooltips exist only for
   uniques distinguishable by base code or stat signature (Shako, Griffon's, Mara's,

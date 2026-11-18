@@ -4,7 +4,17 @@ All notable changes to the GG DEEP DELVE Project Diablo 2 filter project.
 Base: HiimFilter (Hyper) Season 14 build 247. Every original rule is preserved;
 all changes are additive or value/threshold updates.
 
-## v0.1.4 — 2026-11-18
+## v0.2.0 — 2026-11-18
+
+### Equipped gear: F5 toggle, standalone (user rule: never wastes a rotation slot)
+- **F5 toggles the equipped-gear scan** (persists in .env as GG_SCAN_EQUIPPED;
+  F6's toast includes the equipped line only when on). Worn gear is priced
+  into a STANDALONE dashboard section — "Equipped gear — worn, NOT for sale"
+  — and is structurally excluded from discovery, standings and rotation.
+- Pricing measured on live data: pd2trader's builds API prices each equipped
+  item INCLUDING its socketed jewels/runes (Kira's Guardian 4.19 HR with 3x
+  Rainbow Facet (Lightning 3/4) inside, priceBasis=corruption; Arkaine's 2.58,
+  Jade Talon 2.35, CTA 1.38 with runes; ChiTea's worn gear 13.35 HR total).
 
 ### Value from ALL tabs (user rule, then narrowed by user decision)
 - **Character personal stashes are now reachable** — verified live via the
@@ -12,25 +22,33 @@ all changes are additive or value/threshold updates.
   REQUIRED: polling 400s 'Session ID unknown' behind the load balancer;
   python-socketio needs a TUPLE for flat multi-args). Personal-stash items
   merge into the scan as listable (the hook lists from them; PD2 reports them
-  as 'Shared Stash' page 0 in listings).
+  as 'Shared Stash' page 0 in listings). Verified live: 35.26 HR found in
+  ChiTea's personal stash, 4 items posted from it.
 - **Character inventory/cube: REMOVED entirely per user decision** ("don't
   price anything from the inventory") — not scanned, not priced. Equipped
   gear ('Unknown' storage), mercenaries: never scanned (worn, not tradeable).
 - **F6 hotkey: scan + price everything NOW** (shared stash all pages +
   personal stashes, deep-delve pricing, standings, dashboard refresh, toast)
   without touching the market.
-- **Equipped-gear value with socketed jewels priced in** — pd2trader's builds
-  API prices each equipped item INCLUDING its socketed jewels/runes
-  (measured: Kira's Guardian 4.19 HR with 3x Rainbow Facet (Lightning 3/4)
-  inside, priceBasis=corruption; Arkaine's 2.58, Jade Talon 2.37, CTA 1.38;
-  ChiTea's total equipped gear 14.1 HR server-computed). Shown in the F6
-  toast as a non-sellable information line.
 - **The PD2 currency dict is NOT a holdings source**: its counts are a stale
   game-save snapshot (claimed 15x Sigil of Madawc / 5x Festering Essence of
   Destruction AFTER those stacks had sold; user confirmed not owning them).
   It remains priced for the dashboard, but ownership/listing comes only from
   real item objects (stash pages + character personal stashes).
-- Verified cycle: 329 items, 39.69 HR, 3 GG.
+
+### Ownership + rotation
+- **Only real item objects may be listed** (shared stash pages + character
+  personal stashes). Synthetic currency-walk rows (raw-less) previously posted
+  phantom listings with unnamed cards for mats the user could not trade from
+  the stash tab — 4 phantoms delisted 2026-11-18; post-fix audit: 0 of 45
+  listings reference items not owned.
+- **Per-tick rotation raised**: watch cycles re-rank and diff with caps
+  10 posts / 12 actions per 90 s tick — new items displace the bottom of the
+  top-45 every tick.
+- **Empty-market refill deadlock fixed**: a successful lookup with zero
+  listings is a valid answer (all 45 had sold); only a failed lookup twice
+  blocks posting. Verified: 45 reposted in one cycle.
+- Verified cycle: 353 items, 73.74 HR, 3 GG / 78 CHECK.
 
 ## v0.1.3 — 2026-11-18
 
