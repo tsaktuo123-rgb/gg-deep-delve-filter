@@ -315,7 +315,7 @@ def link_filter():
     if not FILTER.exists():
         print('filter not found: %s' % FILTER)
         return 1
-    text = FILTER.read_text(encoding='cp1252')
+    text = FILTER.read_text(encoding='utf-8')
     m = re.search(r'^Alias\[GG_TIER3_FX\]:.*%SOUNDID-(\d+)%.*$', text, re.M)
     if not m:
         print('GG_TIER3_FX alias line not found; aborting')
@@ -332,7 +332,7 @@ def link_filter():
         print('rewrite failed; aborting')
         return 2
     shutil.copyfile(FILTER, FILTER.with_suffix('.filter.money-bak'))
-    FILTER.write_text(new_text, encoding='cp1252', newline='\n')
+    FILTER.write_text(new_text, encoding='utf-8', newline='\n')
     loot = FILTER.parent.parent / 'loot.filter'
     if loot.exists() and 'GG DEEP DELVE price engine' in loot.read_text(encoding='utf-8', errors='replace'):
         shutil.copyfile(FILTER, loot)
@@ -342,7 +342,7 @@ def link_filter():
     return 0
 
 def revert():
-    text = FILTER.read_text(encoding='cp1252')
+    text = FILTER.read_text(encoding='utf-8')
     new_text, n = re.subn(
         r'^(Alias\[GG_TIER3_FX\]:.*?%SOUNDID-)\d+(%.*)$',
         lambda mm: mm.group(1) + JACKPOT_FALLBACK + mm.group(2),
@@ -351,7 +351,7 @@ def revert():
         print('rewrite failed; nothing changed')
         return 2
     shutil.copyfile(FILTER, FILTER.with_suffix('.filter.money-bak'))
-    FILTER.write_text(new_text, encoding='cp1252', newline='\n')
+    FILTER.write_text(new_text, encoding='utf-8', newline='\n')
     loot = FILTER.parent.parent / 'loot.filter'
     if loot.exists() and 'GG DEEP DELVE price engine' in loot.read_text(encoding='utf-8', errors='replace'):
         shutil.copyfile(FILTER, loot)

@@ -211,8 +211,7 @@ def fetch_stash_items(token, account, base=None):
     # crafting materials (map_craft), jewel fragments. These stay in the stash -
     # they're consumed, not sold. Runes and gems also excluded (never sell).
     SKIP_CUR = {'rejuv', 'full_rejuv', 'stash_gold', 'version', 'identifier',
-                'gems', 'maps', 'wss', 'map_craft', 'jewel_frag', 'runes',
-                'demonic_cube'}
+                'wss', 'twss', 'token_of_absolution'}
     RUNE_NAMES = {'r01': 'El', 'r02': 'Eld', 'r03': 'Tir', 'r04': 'Nef', 'r05': 'Eth',
                   'r06': 'Ith', 'r07': 'Tal', 'r08': 'Ral', 'r09': 'Ort', 'r10': 'Thul',
                   'r11': 'Amn', 'r12': 'Sol', 'r13': 'Shael', 'r14': 'Dol', 'r15': 'Hel',
@@ -412,14 +411,14 @@ def update_filter_status(env, state, rows=None):
     new_alias = 'Alias[GG_ENGINE_STATUS]: ' + text
     targets = {gg}
     for path in targets:
-        t = path.read_text(encoding='cp1252')
+        t = path.read_text(encoding='utf-8')
         if 'Alias[GG_ENGINE_STATUS]' in t:
             t = re.sub(r'^Alias\[GG_ENGINE_STATUS\]:.*$', new_alias, t, count=1, flags=re.M)
         elif 'Alias[GG_MONEY_TAG]' in t:
             t = t.replace('Alias[GG_MONEY_TAG]', new_alias + '\nAlias[GG_MONEY_TAG]', 1)
         else:
             continue
-        path.write_text(t, encoding='cp1252', newline='\n')
+        path.write_text(t, encoding='utf-8', newline='\n')
     return True
 
 
@@ -522,11 +521,21 @@ def scan_once(token, env, tab_filter=None, full=False):
     probe_items = []
     for it in fresh:
         q = it.get('quality')
+        tab = it.get('tab') or ''
         if q in ('Rare', 'Craft'):
             rare_items.append(it)
+        elif tab == 'Maps':
+            # standard tier maps are NOT tracked by pd2trader's valuation -
+            # their codes fuzzy-resolve to runes. Excluded from listing.
+            it['hr'] = 0
+            it['untracked'] = True
+            continue
         elif q in ('Unique', 'Set', 'Currency', 'Material') or it.get('runeword'):
             nm = it.get('code') if q == 'Currency' else (it.get('name') or it.get('base_name'))
             val_lines.append({'item': nm, 'qty': it.get('qty', 1), 'it': it})
+            # gems and untracked codes: ALSO probe via price-check as fallback
+            if tab in ('Gems',) or q == 'Gem':
+                probe_items.append(it)
         else:
             probe_items.append(it)                       # magic/normal/superior/gems -> price-check
     dedup = {}
