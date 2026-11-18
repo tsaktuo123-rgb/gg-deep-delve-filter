@@ -71,7 +71,7 @@ GAME_PROCESSES = ('Game.exe', 'Diablo II.exe')
 # configurable via .env (GG_STAND_HIGH=1.0, GG_STAND_CHECK=0.3).
 def load_standings(env):
     high = float(env.get('GG_STAND_HIGH', 1.0))     # >= this -> GG (auto-sell candidate)
-    low = float(env.get('GG_STAND_CHECK', 0.3))     # >= this -> CHECK, below -> VENDOR
+    low = float(env.get('GG_STAND_CHECK', 0.15))    # >= this -> CHECK, below -> VENDOR
     return high, low
 
 def classify(it, high, low, appraisal=None):
@@ -203,6 +203,7 @@ def fetch_stash_items(token, account, base=None):
             'modifiers': mods,
             'id': str(it.get('id')),
             'raw': it,
+            'qty': it.get('quantity') or 1,
         })
     # currency/misc/maps/ubers/gems tabs: recursive walk of the ENTIRE currency
     # dict -> every (path, count) becomes a priced, listable line
@@ -211,7 +212,8 @@ def fetch_stash_items(token, account, base=None):
     # crafting materials (map_craft), jewel fragments. These stay in the stash -
     # they're consumed, not sold. Runes and gems also excluded (never sell).
     SKIP_CUR = {'rejuv', 'full_rejuv', 'stash_gold', 'version', 'identifier',
-                'wss', 'twss', 'token_of_absolution'}
+                'wss', 'twss', 'token_of_absolution', 'map_craft',
+                'gems', 'maps', 'runes', 'demonic_cube', 'jewel_frag'}
     RUNE_NAMES = {'r01': 'El', 'r02': 'Eld', 'r03': 'Tir', 'r04': 'Nef', 'r05': 'Eth',
                   'r06': 'Ith', 'r07': 'Tal', 'r08': 'Ral', 'r09': 'Ort', 'r10': 'Thul',
                   'r11': 'Amn', 'r12': 'Sol', 'r13': 'Shael', 'r14': 'Dol', 'r15': 'Hel',
@@ -533,9 +535,12 @@ def scan_once(token, env, tab_filter=None, full=False):
         elif q in ('Unique', 'Set', 'Currency', 'Material') or it.get('runeword'):
             nm = it.get('code') if q == 'Currency' else (it.get('name') or it.get('base_name'))
             val_lines.append({'item': nm, 'qty': it.get('qty', 1), 'it': it})
-            # gems and untracked codes: ALSO probe via price-check as fallback
             if tab in ('Gems',) or q == 'Gem':
                 probe_items.append(it)
+        elif it.get('qty', 1) > 1 and it.get('name'):
+            # stacked items (uber mats, crafting mats with qty>1): valuate handles qty natively
+            nm = it.get('name') or it.get('base_name')
+            val_lines.append({'item': nm, 'qty': it.get('qty', 1), 'it': it})
         else:
             probe_items.append(it)                       # magic/normal/superior/gems -> price-check
     dedup = {}
