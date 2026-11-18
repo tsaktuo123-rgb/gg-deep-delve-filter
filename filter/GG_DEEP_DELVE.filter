@@ -9,7 +9,7 @@ ItemDisplayFilterName[]: ÿc8Extremely Strict+
 ItemDisplayFilterName[]: ÿc1High roller
 ItemDisplayFilterName[]: ÿc13 Min Mapper
 ItemDisplayFilterName[]: ÿc1No Items Out of Town
-ItemDisplay[box]: %NAME%{GG DEEP DELVE price engine - live S14 values via Sync_PD2_Filter%CL%Last updated Nov 17 2026%CL%Season 14 - build 247%CL%GG DEEP DELVE - Season 14}%CONTINUE%
+ItemDisplay[box]: %NAME%{GG DEEP DELVE price engine - live S14 values via Sync_PD2_Filter%CL%Last updated Nov 18 2026%CL%Season 14 - build 247%CL%GG DEEP DELVE - Season 14}%CONTINUE%
 Alias[IN_TOWN]: (MAPID=1 OR MAPID=40 OR MAPID=75 OR MAPID=103 OR MAPID=109)
 ItemDisplay[box FILTLVL=0]: %NAME%{%NAME% OFF}%CONTINUE%
 ItemDisplay[box FILTLVL=1]: %NAME%{%NAME% Campaign (1)}%CONTINUE%
@@ -97,7 +97,7 @@ Alias[GG_PRICE_HEADER]: %GOLD%GG DEEP DELVE %WHITE%S14 %GRAY%prices: pd2trader.c
 Alias[FX_UNID_BOSS]: %SOUNDID-4733%
 Alias[PK1_VALUE]: 0.3
 Alias[PK2_VALUE]: 0.2
-Alias[PK3_VALUE]: 0.15
+Alias[PK3_VALUE]: 0.2
 
 // ==== GG DEEP DELVE auto-tier engine (value aliases are updated by Sync_PD2_Filter.bat; thresholds 0.45/1.05/0.5/1 are the T1/T2/T3 spec) ====
 ItemDisplay[r20 $f(LEM_RUNE_VALUE*QTY>1)]: %DOT-9B%%PX-0B%%DARK_GREEN%## %GREEN%## %NAME% %GREEN%## %DARK_GREEN%##%SOUNDID-4733%%CONTINUE%
@@ -395,22 +395,22 @@ ItemDisplay[(crfb OR crfc OR crfs OR crfh OR crfv OR crfu OR crfp) QTY>1]: %NAME
 ItemDisplay[(crfb OR crfc OR crfs OR crfh OR crfv OR crfu OR crfp)]: %ORANGE%OoOoO %NAME% %ORANGE%OoOoO%CONTINUE%{%NAME%}
 Alias[UNID_UNI_AMULET]: Unique Amulet
 Alias[UNID_UNI_RING]: Unique Ring
-Alias[CURRENCY_TIMESTAMP]: %WHITE%HR Values: Nov 17 2026 - S14 ladder SC 7-day avg (pd2trader.com)
+Alias[CURRENCY_TIMESTAMP]: %WHITE%HR Values: Nov 18 2026 - S14 ladder SC 7-day avg (pd2trader.com)
 Alias[CRAFTING_RUNES_SET]: (RUNE=3 OR RUNE=4 OR RUNE=5 OR RUNE=7 OR RUNE=8 OR RUNE=9 OR RUNE=11 OR RUNE=12 OR RUNE=15 OR RUNE=16 OR RUNE=17 OR RUNE=18)
 Alias[OHM_RUNE_VALUE]: 1
 Alias[LO_RUNE_VALUE]: 1.15
 Alias[SUR_RUNE_VALUE]: 1.65
 Alias[BER_RUNE_VALUE]: 3.3
-Alias[JAH_RUNE_VALUE]: 2.15
-Alias[CHAM_RUNE_VALUE]: 2.35
-Alias[ZOD_RUNE_VALUE]: 4.75
+Alias[JAH_RUNE_VALUE]: 2.2
+Alias[CHAM_RUNE_VALUE]: 2.4
+Alias[ZOD_RUNE_VALUE]: 4.85
 Alias[OHM_WSS_VALUE]: 100
 Alias[LO_WSS_VALUE]: 115
 Alias[SUR_WSS_VALUE]: 165
 Alias[BER_WSS_VALUE]: 330
-Alias[JAH_WSS_VALUE]: 215
-Alias[CHAM_WSS_VALUE]: 235
-Alias[ZOD_WSS_VALUE]: 475
+Alias[JAH_WSS_VALUE]: 220
+Alias[CHAM_WSS_VALUE]: 240
+Alias[ZOD_WSS_VALUE]: 485
 Alias[LEM_RUNE_VALUE]: 0.05
 Alias[PUL_RUNE_VALUE]: 0.05
 Alias[UM_RUNE_VALUE]: 0.15
@@ -443,39 +443,39 @@ Alias[OHM_STACK_HR]: (QTY*1)
 Alias[LO_STACK_HR]: (QTY*1.15)
 Alias[SUR_STACK_HR]: (QTY*1.65)
 Alias[BER_STACK_HR]: (QTY*3.3)
-Alias[JAH_STACK_HR]: (QTY*2.15)
-Alias[CHAM_STACK_HR]: (QTY*2.35)
-Alias[ZOD_STACK_HR]: (QTY*4.75)
+Alias[JAH_STACK_HR]: (QTY*2.2)
+Alias[CHAM_STACK_HR]: (QTY*2.4)
+Alias[ZOD_STACK_HR]: (QTY*4.85)
 Alias[OHM_STACK_WSS]: (QTY*100)
 Alias[LO_STACK_WSS]: (QTY*115)
 Alias[SUR_STACK_WSS]: (QTY*165)
 Alias[BER_STACK_WSS]: (QTY*330)
-Alias[JAH_STACK_WSS]: (QTY*215)
-Alias[CHAM_STACK_WSS]: (QTY*235)
-Alias[ZOD_STACK_WSS]: (QTY*475)
+Alias[JAH_STACK_WSS]: (QTY*220)
+Alias[CHAM_STACK_WSS]: (QTY*240)
+Alias[ZOD_STACK_WSS]: (QTY*485)
 Alias[WSS_ITEM_HR_VALUE]: 0.01
-Alias[TAINTED_WORLDSTONE_SHARD_VALUE]: 1.25
+Alias[TAINTED_WORLDSTONE_SHARD_VALUE]: 1.2
 Alias[LARZUK_PUZZLEBOX_VALUE]: 0.5
 Alias[LARZUK_PUZZLEPIECE_VALUE]: 0.1
-Alias[DEMONIC_CUBE_VALUE]: 0.8
+Alias[DEMONIC_CUBE_VALUE]: 0.85
 Alias[CATALYST_SHARD_VALUE]: 0.45
 Alias[WSS_ITEM_WSS_VALUE]: 1
-Alias[TAINTED_WORLDSTONE_SHARD_WSS_VALUE]: 125
+Alias[TAINTED_WORLDSTONE_SHARD_WSS_VALUE]: 120
 Alias[LARZUK_PUZZLEBOX_WSS_VALUE]: 50
 Alias[LARZUK_PUZZLEPIECE_WSS_VALUE]: 10
-Alias[DEMONIC_CUBE_WSS_VALUE]: 80
+Alias[DEMONIC_CUBE_WSS_VALUE]: 85
 Alias[CATALYST_SHARD_WSS_VALUE]: 45
 Alias[WSS_ITEM_STACK_HR]: (QTY*0.01)
-Alias[TAINTED_WORLDSTONE_SHARD_STACK_HR]: (QTY*1.25)
+Alias[TAINTED_WORLDSTONE_SHARD_STACK_HR]: (QTY*1.2)
 Alias[LARZUK_PUZZLEBOX_STACK_HR]: (QTY*0.5)
 Alias[LARZUK_PUZZLEPIECE_STACK_HR]: (QTY*0.1)
-Alias[DEMONIC_CUBE_STACK_HR]: (QTY*0.8)
+Alias[DEMONIC_CUBE_STACK_HR]: (QTY*0.85)
 Alias[CATALYST_SHARD_STACK_HR]: (QTY*0.45)
 Alias[WSS_ITEM_STACK_WSS]: (QTY*1)
-Alias[TAINTED_WORLDSTONE_SHARD_STACK_WSS]: (QTY*125)
+Alias[TAINTED_WORLDSTONE_SHARD_STACK_WSS]: (QTY*120)
 Alias[LARZUK_PUZZLEBOX_STACK_WSS]: (QTY*50)
 Alias[LARZUK_PUZZLEPIECE_STACK_WSS]: (QTY*10)
-Alias[DEMONIC_CUBE_STACK_WSS]: (QTY*80)
+Alias[DEMONIC_CUBE_STACK_WSS]: (QTY*85)
 Alias[CATALYST_SHARD_STACK_WSS]: (QTY*45)
 Alias[BLACK_SOULSTONE_VALUE]: 0.25
 Alias[PRIME_EVIL_SOUL_VALUE]: 0.45
@@ -483,7 +483,7 @@ Alias[PURE_DEMONIC_ESSENCE_VALUE]: 0.1
 Alias[HELLFIRE_ASHES_VALUE]: 0.5
 Alias[SPLINTER_OF_THE_VOID_VALUE]: 0.1
 Alias[TRANG_OUL_JAWBONE_VALUE]: 0.1
-Alias[FLESH_OF_MALIC_VALUE]: 0.1
+Alias[FLESH_OF_MALIC_VALUE]: 0.15
 Alias[TALISMAN_OF_TRANSGRESSION_VALUE]: 0.05
 Alias[DEMONIC_INSIGNIA_VALUE]: 0.4
 Alias[FESTERING_ESS_VALUE]: 0.25
@@ -493,22 +493,22 @@ Alias[TWISTED_ESS_VALUE]: 0.15
 Alias[LEM_MARKET_RANGE]: 0.05 - 0.05 HR
 Alias[PUL_MARKET_RANGE]: 0.05 - 0.05 HR
 Alias[UM_MARKET_RANGE]: 0.1 - 0.15 HR
-Alias[MAL_MARKET_RANGE]: 0.15 - 0.15 HR
+Alias[MAL_MARKET_RANGE]: 0.1 - 0.15 HR
 Alias[IST_MARKET_RANGE]: 0.25 - 0.25 HR
 Alias[GUL_MARKET_RANGE]: 0.3 - 0.3 HR
 Alias[OHM_MARKET_RANGE]: 1 - 1 HR
 Alias[LO_MARKET_RANGE]: 1.15 - 1.15 HR
 Alias[SUR_MARKET_RANGE]: 1.65 - 1.65 HR
-Alias[BER_MARKET_RANGE]: 3.3 - 3.3 HR
-Alias[JAH_MARKET_RANGE]: 2.15 - 2.15 HR
-Alias[CHAM_MARKET_RANGE]: 2.35 - 2.4 HR
-Alias[ZOD_MARKET_RANGE]: 4.75 - 4.8 HR
+Alias[BER_MARKET_RANGE]: 3.25 - 3.3 HR
+Alias[JAH_MARKET_RANGE]: 2.2 - 2.2 HR
+Alias[CHAM_MARKET_RANGE]: 2.4 - 2.45 HR
+Alias[ZOD_MARKET_RANGE]: 4.85 - 4.85 HR
 Alias[VEX_MARKET_RANGE]: 0.55 - 0.55 HR
-Alias[TAINTED_WORLDSTONE_SHARD_MARKET_RANGE]: 1.25 - 1.25 HR
+Alias[TAINTED_WORLDSTONE_SHARD_MARKET_RANGE]: 1.2 - 1.2 HR
 Alias[CATALYST_SHARD_MARKET_RANGE]: 0.45 - 0.45 HR
 Alias[LARZUK_PUZZLEBOX_MARKET_RANGE]: 0.5 - 0.5 HR
 Alias[LARZUK_PUZZLEPIECE_MARKET_RANGE]: 0.1 - 0.1 HR
-Alias[DEMONIC_CUBE_MARKET_RANGE]: 0.8 - 0.85 HR
+Alias[DEMONIC_CUBE_MARKET_RANGE]: 0.85 - 0.85 HR
 Alias[4_STAR_UNIQUE]: (6lw OR 6ws OR 7bl OR 7cr OR 7gw OR 7wh OR 7ws OR 8ws OR aqv3 OR ci3 OR drd OR dre OR obe OR pa9 OR pab OR pac OR uar OR uh9 OR uhc OR uhg OR uhm OR ulc OR umg OR upl OR urn OR usk OR uts OR uul OR uvg OR xh9 OR xhb OR xtb OR xtg OR ztb)
 Alias[3_STAR_UNIQUE]: (6bs OR 7bk OR 7pa OR 7wc OR 8mx OR 8rx OR amf OR ci2 OR ned OR nef OR obf OR paf OR tbt OR tgl OR uap OR ulm OR umb OR umc OR ung OR urs OR ush OR utg OR uui OR xhn OR xlt OR xvb OR zhb OR zlb)
 Alias[2_STAR_UNIQUE]: (6cs OR 6rx OR 7b7 OR 7fl OR 7gd OR 7gm OR 7s8 OR 7tw OR 7wa OR 7xf OR 9di OR 9fc OR 9gw OR 9ls OR 9s8 OR 9wc OR 9wn OR aar OR amc OR amd OR ame OR ba7 OR bae OR baf OR gsd OR kit OR mbt OR neg OR pae OR uhb OR uit OR upk OR utu OR uuc OR uvb OR uvc OR xea OR xlb OR xld OR xsh OR xth OR zvb)
@@ -2288,6 +2288,302 @@ ItemDisplay[(RARE OR CRAFT) BELT ID (STAT40=2 STAT42=2 STAT44=2 STAT46=2) (LIFE>
 ItemDisplay[(RARE OR CRAFT) CHEST ID STAT110>74 (LIFE>29 OR STR>14 OR DEX>14 OR STAT216>0) (FCR>19 OR FHR>23 OR EDAM>99 OR SOCK=3 OR RES>14 OR CLSK0>0 OR CLSK1>0 OR CLSK2>0 OR CLSK3>0 OR CLSK4>0 OR CLSK5>0 OR CLSK6>0) (STAT360=0 OR STAT360=53 OR STAT360=54 OR STAT360=56 OR STAT360=43 OR STAT360=44 OR ALLSK=1 OR STAT360=62 OR STAT360=45 OR STAT360=35 OR STAT360=42 OR STAT360=52 OR STAT360=51 OR STAT360=36 OR STAT360=37 OR STAT360=38 OR STAT360=39)]:%NAME%{%RED%Rathma Chest%CL%%NAME%}%CONTINUE%%DOT-97%
 ItemDisplay[RARE CIRC ID STAT110>49 (LIFE>29 OR STAT216>0 OR STR>14 OR DEX>14) (FCR>19 OR FRW>19 OR RES>14 OR SOCK=3) (TABSK40>1 OR TABSK42>1 OR TABSK32>1 OR TABSK33>1 OR TABSK34>1 OR TABSK24>1 OR TABSK25>1 OR TABSK16>1 OR TABSK17>1 OR TABSK18>1 OR TABSK8>1 OR TABSK9>1 OR TABSK10>1 OR TABSK48>1 OR TABSK49>1 OR TABSK50>1 OR TABSK0>1 OR TABSK1>1 OR TABSK2>1 OR CLSK0>1 OR CLSK1>1 OR CLSK2>1 OR CLSK3>1 OR CLSK4>1 OR CLSK5>1 OR CLSK6>1)]:%NAME%{%RED%Rathma Circlet%CL%%NAME%}%CONTINUE%%DOT-97%
 ItemDisplay[(RARE OR CRAFT) GLOVES ID STAT110>24 IAS>19 (TABSK0=2 OR TABSK2=2 OR TABSK50=2) (STAT360=0 OR IAS>29 OR LIFE>19 OR RES>4 OR (STAT0>2 STAT1>2 STAT2>2 STAT3>2) OR STAT116>0 OR AR>99 OR STAT360=36 OR STAT360=37 OR STAT360=39) (STAT360=0 OR IAS>29 OR STAT119>9 OR STAT118=1 OR STR>9 OR DEX>9 OR CRES>19 OR FRES>19 OR PRES>19)]:%NAME%{%RED%Rathma Gloves%CL%%NAME%}%CONTINUE%%DOT-97%
+// ==== GG LIVE PRICES (auto-generated by Sync_PD2_Filter - do not hand-edit) ====
+ItemDisplay[UNI ID 9b8]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.07 HR (82 comps)}
+ItemDisplay[UNI ID 7qs]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.29 HR (267 comps)}
+ItemDisplay[UNI ID pac STAT360=27]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (to All Skills): 1.25 HR (83 comps)}
+ItemDisplay[UNI ID pac STAT360=32]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Numsockets): 1 HR (751 comps)}
+ItemDisplay[UNI ID pac STAT360=45]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Cannot Be Frozen): 0.25 HR (59 comps)}
+ItemDisplay[UNI ID pac]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.75 HR (792 comps)}
+ItemDisplay[UNI ID usk STAT360=50]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (to All Skills): 1.5 HR (169 comps)}
+ItemDisplay[UNI ID usk STAT360=32]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Numsockets): 1.2 HR (1407 comps)}
+ItemDisplay[UNI ID usk STAT360=45]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Cannot Be Frozen): 0.5 HR (160 comps)}
+ItemDisplay[UNI ID usk]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.82 HR (1419 comps)}
+ItemDisplay[UNI ID ulc]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.25 HR (2255 comps)}
+ItemDisplay[UNI ID 7sr]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.2 HR (406 comps)}
+ItemDisplay[UNI ID 9bw]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.19 HR (194 comps)}
+ItemDisplay[UNI ID baa]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.31 HR (294 comps)}
+ItemDisplay[UNI ID 9s8]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.2 HR (170 comps)}
+ItemDisplay[UNI ID xth]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.13 HR (949 comps)}
+ItemDisplay[UNI ID 9fl]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.02 HR (25 comps)}
+ItemDisplay[UNI ID sst]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 1.36 HR (11 comps)}
+ItemDisplay[UNI ID 7mt]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.05 HR (18 comps)}
+ItemDisplay[UNI ID 9tw]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.14 HR (386 comps)}
+ItemDisplay[UNI ID 9cm]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.05 HR (4 comps)}
+ItemDisplay[UNI ID 9kr]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.34 HR (94 comps)}
+ItemDisplay[UNI ID 9gw]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.1 HR (69 comps)}
+ItemDisplay[UNI ID uml]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.2 HR (149 comps)}
+ItemDisplay[UNI ID bsw]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.27 HR (91 comps)}
+ItemDisplay[UNI ID 9fc]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.3 HR (204 comps)}
+ItemDisplay[UNI ID lwb]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.02 HR (6 comps)}
+ItemDisplay[UNI ID 9ss]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.05 HR (21 comps)}
+ItemDisplay[UNI ID 7sb]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.12 HR (38 comps)}
+ItemDisplay[UNI ID amb]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.15 HR (230 comps)}
+ItemDisplay[UNI ID brn]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.01 HR (3 comps)}
+ItemDisplay[UNI ID 9m9]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.1 HR (93 comps)}
+ItemDisplay[UNI ID nee]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.25 HR (436 comps)}
+ItemDisplay[UNI ID plt]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.03 HR (22 comps)}
+ItemDisplay[UNI ID 7o7]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.18 HR (153 comps)}
+ItemDisplay[UNI ID 7bw]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.24 HR (421 comps)}
+ItemDisplay[UNI ID 9ga]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.03 HR (29 comps)}
+ItemDisplay[UNI ID mau]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.12 HR (67 comps)}
+ItemDisplay[UNI ID gax]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.09 HR (18 comps)}
+ItemDisplay[UNI ID 6bs]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.36 HR (405 comps)}
+ItemDisplay[UNI ID 8hx]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.14 HR (345 comps)}
+ItemDisplay[UNI ID 9ax]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.17 HR (26 comps)}
+ItemDisplay[UNI ID rar]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 200 HR (6 comps)}
+ItemDisplay[UNI ID uhn]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 200 HR (6 comps)}
+ItemDisplay[UNI ID 9yw]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 1.48 HR (19 comps)}
+ItemDisplay[UNI ID drb]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.16 HR (413 comps)}
+ItemDisplay[UNI ID 8cs]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.14 HR (82 comps)}
+ItemDisplay[UNI ID 8l8]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.08 HR (18 comps)}
+ItemDisplay[UNI ID 9b9]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.15 HR (38 comps)}
+ItemDisplay[UNI ID 9ha]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.01 HR (11 comps)}
+ItemDisplay[UNI ID 92h]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.08 HR (5 comps)}
+ItemDisplay[UNI ID 7mp]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.13 HR (61 comps)}
+ItemDisplay[UNI ID mac]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.01 HR (14 comps)}
+ItemDisplay[UNI ID ba6]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.16 HR (223 comps)}
+ItemDisplay[UNI ID 9cl]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.04 HR (35 comps)}
+ItemDisplay[UNI ID 7wa STAT360=27]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (to All Skills): 2 HR (22 comps)}
+ItemDisplay[UNI ID 7wa STAT360=19]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Dmg%, Chance of Deadly Strike, Maxdamage): 0.5 HR (21 comps)}
+ItemDisplay[UNI ID 7wa STAT360=19]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Chance of Deadly Strike): 0.5 HR (27 comps)}
+ItemDisplay[UNI ID 7wa]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.55 HR (322 comps)}
+ItemDisplay[UNI ID 9tk]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.14 HR (70 comps)}
+ItemDisplay[UNI ID obf]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.3 HR (817 comps)}
+ItemDisplay[UNI ID 7gw STAT360=39]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (to Enemy Poison Resistance): 4 HR (33 comps)}
+ItemDisplay[UNI ID 7gw STAT360=27]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (to All Skills): 3.87 HR (36 comps)}
+ItemDisplay[UNI ID 7gw STAT360=27]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Faster Cast Rate): 1.5 HR (90 comps)}
+ItemDisplay[UNI ID 7gw]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.72 HR (690 comps)}
+ItemDisplay[UNI ID axe]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.01 HR (13 comps)}
+ItemDisplay[UNI ID 7sp]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.04 HR (54 comps)}
+ItemDisplay[UNI ID 8rx]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.29 HR (1491 comps)}
+ItemDisplay[UNI ID bad]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.33 HR (271 comps)}
+ItemDisplay[UNI ID 7s7]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.15 HR (155 comps)}
+ItemDisplay[UNI ID drc]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.17 HR (564 comps)}
+ItemDisplay[UNI ID bar]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.01 HR (5 comps)}
+ItemDisplay[UNI ID 7sm]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.15 HR (65 comps)}
+ItemDisplay[UNI ID 7b7 STAT360=19]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Dmg%, Chance of Deadly Strike, Maxdamage): 1 HR (36 comps)}
+ItemDisplay[UNI ID 7b7 STAT360=20]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Dmg%, Increased Attack Speed, Maxdamage ): 1 HR (69 comps)}
+ItemDisplay[UNI ID 7b7 STAT360=19]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Chance of Deadly Strike): 0.5 HR (29 comps)}
+ItemDisplay[UNI ID 7b7]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.57 HR (687 comps)}
+ItemDisplay[UNI ID rxb]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.07 HR (17 comps)}
+ItemDisplay[UNI ID uvg]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.3 HR (1773 comps)}
+ItemDisplay[UNI ID pae]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.34 HR (291 comps)}
+ItemDisplay[UNI ID 6l7]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.09 HR (114 comps)}
+ItemDisplay[UNI ID 9wh]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.13 HR (178 comps)}
+ItemDisplay[UNI ID obd]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.15 HR (603 comps)}
+ItemDisplay[UNI ID 8cb]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.29 HR (121 comps)}
+ItemDisplay[UNI ID obc]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.2 HR (744 comps)}
+ItemDisplay[UNI ID 7ba]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.16 HR (105 comps)}
+ItemDisplay[UNI ID 7gi]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.32 HR (160 comps)}
+ItemDisplay[UNI ID dr6]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.32 HR (483 comps)}
+ItemDisplay[UNI ID 7lw]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.39 HR (520 comps)}
+ItemDisplay[UNI ID 7gs]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.18 HR (349 comps)}
+ItemDisplay[UNI ID 9sp]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.05 HR (27 comps)}
+ItemDisplay[UNI ID 7kr]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.1 HR (143 comps)}
+ItemDisplay[UNI ID 7ts]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.37 HR (153 comps)}
+ItemDisplay[UNI ID xow]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.25 HR (455 comps)}
+ItemDisplay[UNI ID 7bl]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.34 HR (333 comps)}
+ItemDisplay[UNI ID 7ta]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.06 HR (172 comps)}
+ItemDisplay[UNI ID 9cr]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.09 HR (21 comps)}
+ItemDisplay[UNI ID flc]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.08 HR (3 comps)}
+ItemDisplay[UNI ID bax]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.01 HR (5 comps)}
+ItemDisplay[UNI ID 9wc]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.08 HR (277 comps)}
+ItemDisplay[UNI ID xlt STAT360=50]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (to All Skills): 4 HR (93 comps)}
+ItemDisplay[UNI ID xlt STAT360=50]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Faster Cast Rate): 0.64 HR (44 comps)}
+ItemDisplay[UNI ID xlt STAT360=45]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Cannot Be Frozen): 0.5 HR (74 comps)}
+ItemDisplay[UNI ID xlt]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.51 HR (869 comps)}
+ItemDisplay[UNI ID 9wa]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.03 HR (7 comps)}
+ItemDisplay[SET ID xhm]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Set Live Est: 0.13 HR (388 comps)}
+ItemDisplay[UNI ID 6rx]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.23 HR (539 comps)}
+ItemDisplay[UNI ID 7bs]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 51.38 HR (15 comps)}
+ItemDisplay[UNI ID bae]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.27 HR (620 comps)}
+ItemDisplay[UNI ID 9ws STAT360=27]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (to All Skills): 2.75 HR (36 comps)}
+ItemDisplay[UNI ID 9ws STAT360=32]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Numsockets): 1.5 HR (414 comps)}
+ItemDisplay[UNI ID 9ws STAT360=27]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Faster Cast Rate): 1 HR (46 comps)}
+ItemDisplay[UNI ID 9ws]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.81 HR (315 comps)}
+ItemDisplay[UNI ID ush]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.32 HR (279 comps)}
+ItemDisplay[UNI ID 9bs]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.2 HR (38 comps)}
+ItemDisplay[UNI ID 9di]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.13 HR (66 comps)}
+ItemDisplay[UNI ID hxb]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.04 HR (22 comps)}
+ItemDisplay[UNI ID 6hx]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.34 HR (258 comps)}
+ItemDisplay[UNI ID 7bt]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.16 HR (547 comps)}
+ItemDisplay[UNI ID pa9 STAT360=27]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (to All Skills): 2.5 HR (31 comps)}
+ItemDisplay[UNI ID pa9 STAT360=46]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Physical Damage Taken Reduced by): 0.75 HR (26 comps)}
+ItemDisplay[UNI ID pa9 STAT360=45]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Cannot Be Frozen): 0.72 HR (50 comps)}
+ItemDisplay[UNI ID pa9]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.57 HR (408 comps)}
+ItemDisplay[UNI ID 9sb]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.02 HR (18 comps)}
+ItemDisplay[UNI ID nea]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.12 HR (320 comps)}
+ItemDisplay[UNI ID 9st]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.05 HR (5 comps)}
+ItemDisplay[UNI ID gix]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.19 HR (78 comps)}
+ItemDisplay[UNI ID 9h9]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.02 HR (10 comps)}
+ItemDisplay[UNI ID xtu]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.03 HR (13 comps)}
+ItemDisplay[UNI ID utb]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 70.92 HR (19 comps)}
+ItemDisplay[UNI ID 7wb]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.29 HR (619 comps)}
+ItemDisplay[UNI ID dra]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.39 HR (484 comps)}
+ItemDisplay[UNI ID ne6]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.15 HR (111 comps)}
+ItemDisplay[UNI ID gis]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.01 HR (12 comps)}
+ItemDisplay[UNI ID ci2]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.3 HR (1816 comps)}
+ItemDisplay[UNI ID 8lb]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.05 HR (46 comps)}
+ItemDisplay[UNI ID 7b8]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.18 HR (331 comps)}
+ItemDisplay[UNI ID xpk STAT360=27]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (to All Skills): 2.5 HR (25 comps)}
+ItemDisplay[UNI ID xpk STAT360=45]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Cannot Be Frozen): 0.5 HR (30 comps)}
+ItemDisplay[UNI ID xpk STAT360=32]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Numsockets): 0.5 HR (234 comps)}
+ItemDisplay[UNI ID xpk]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.43 HR (263 comps)}
+ItemDisplay[UNI ID spt]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.01 HR (5 comps)}
+ItemDisplay[UNI ID 8lx]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.13 HR (59 comps)}
+ItemDisplay[UNI ID xsh]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.18 HR (609 comps)}
+ItemDisplay[UNI ID am7]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.17 HR (81 comps)}
+ItemDisplay[UNI ID am9]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.11 HR (136 comps)}
+ItemDisplay[UNI ID ywn]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.01 HR (6 comps)}
+ItemDisplay[UNI ID 9ar]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.07 HR (157 comps)}
+ItemDisplay[UNI ID 8sw]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.1 HR (56 comps)}
+ItemDisplay[UNI ID 6ws STAT360=32]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Numsockets): 1.5 HR (606 comps)}
+ItemDisplay[UNI ID 6ws STAT360=27]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Faster Cast Rate): 0.75 HR (62 comps)}
+ItemDisplay[UNI ID 6ws STAT360=27]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Faster Cast Rate, to Cold Skill Damage): 0.75 HR (26 comps)}
+ItemDisplay[UNI ID 6ws]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 1.1 HR (650 comps)}
+ItemDisplay[UNI ID umb]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.28 HR (521 comps)}
+ItemDisplay[UNI ID ned]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.3 HR (505 comps)}
+ItemDisplay[UNI ID uow]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.27 HR (795 comps)}
+ItemDisplay[UNI ID ulb]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.16 HR (731 comps)}
+ItemDisplay[UNI ID 7ga]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.16 HR (201 comps)}
+ItemDisplay[SET ID ci0]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Set Live Est: 0.04 HR (68 comps)}
+ItemDisplay[UNI ID 7cl]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.12 HR (23 comps)}
+ItemDisplay[UNI ID uvc]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.31 HR (727 comps)}
+ItemDisplay[UNI ID utg]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.18 HR (712 comps)}
+ItemDisplay[UNI ID 9pa]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.08 HR (25 comps)}
+ItemDisplay[UNI ID 9ls]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.32 HR (280 comps)}
+ItemDisplay[UNI ID 9mp]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.02 HR (4 comps)}
+ItemDisplay[UNI ID utp]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.38 HR (261 comps)}
+ItemDisplay[UNI ID 8mx]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.23 HR (772 comps)}
+ItemDisplay[UNI ID xtp]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.15 HR (729 comps)}
+ItemDisplay[UNI ID dr2]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.14 HR (138 comps)}
+ItemDisplay[UNI ID xts]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.18 HR (197 comps)}
+ItemDisplay[UNI ID baf STAT360=45]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Cannot Be Frozen): 0.5 HR (25 comps)}
+ItemDisplay[UNI ID baf STAT360=32]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Numsockets): 0.5 HR (226 comps)}
+ItemDisplay[UNI ID baf]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.56 HR (221 comps)}
+ItemDisplay[UNI ID wax]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.01 HR (3 comps)}
+ItemDisplay[UNI ID lbw]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.18 HR (21 comps)}
+ItemDisplay[UNI ID dre]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.18 HR (491 comps)}
+ItemDisplay[UNI ID 7ha]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.11 HR (58 comps)}
+ItemDisplay[UNI ID 8ss]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.04 HR (18 comps)}
+ItemDisplay[UNI ID 8ls]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.46 HR (80 comps)}
+ItemDisplay[UNI ID 8hb]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.01 HR (10 comps)}
+ItemDisplay[UNI ID flb]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.09 HR (11 comps)}
+ItemDisplay[UNI ID fld]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.06 HR (47 comps)}
+ItemDisplay[UNI ID xkp]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.15 HR (46 comps)}
+ItemDisplay[UNI ID cbw]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.23 HR (27 comps)}
+ItemDisplay[UNI ID 72a]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.21 HR (230 comps)}
+ItemDisplay[UNI ID neg]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.15 HR (223 comps)}
+ItemDisplay[UNI ID uhl]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.16 HR (373 comps)}
+ItemDisplay[UNI ID uvb]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.17 HR (777 comps)}
+ItemDisplay[UNI ID pa3]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.03 HR (72 comps)}
+ItemDisplay[UNI ID uhb]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.26 HR (733 comps)}
+ItemDisplay[UNI ID 2hs]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.02 HR (12 comps)}
+ItemDisplay[UNI ID 7cs]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.12 HR (468 comps)}
+ItemDisplay[UNI ID xhn]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.43 HR (930 comps)}
+ItemDisplay[UNI ID 7di]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.07 HR (195 comps)}
+ItemDisplay[UNI ID uhc STAT360=50]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Faster Cast Rate): 4 HR (111 comps)}
+ItemDisplay[UNI ID uhc STAT360=20]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Increased Attack Speed): 2.5 HR (102 comps)}
+ItemDisplay[UNI ID uhc STAT360=44]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Faster Run/Walk): 1.75 HR (86 comps)}
+ItemDisplay[UNI ID uhc]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 1.1 HR (1156 comps)}
+ItemDisplay[UNI ID xla]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.13 HR (20 comps)}
+ItemDisplay[UNI ID xea]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.22 HR (1068 comps)}
+ItemDisplay[UNI ID ob7]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.06 HR (54 comps)}
+ItemDisplay[UNI ID 8ws STAT360=27]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (to All Skills): 2 HR (34 comps)}
+ItemDisplay[UNI ID 8ws STAT360=32]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Numsockets): 0.5 HR (662 comps)}
+ItemDisplay[UNI ID 8ws STAT360=39]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (to Enemy Poison Resistance): 0.3 HR (20 comps)}
+ItemDisplay[UNI ID 8ws]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.8 HR (556 comps)}
+ItemDisplay[UNI ID xpl]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.37 HR (386 comps)}
+ItemDisplay[UNI ID obe]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.39 HR (505 comps)}
+ItemDisplay[UNI ID 8sb]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.02 HR (11 comps)}
+ItemDisplay[UNI ID umg]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.31 HR (1465 comps)}
+ItemDisplay[UNI ID scy]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.02 HR (9 comps)}
+ItemDisplay[UNI ID clm]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.01 HR (5 comps)}
+ItemDisplay[UNI ID urs]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.24 HR (647 comps)}
+ItemDisplay[UNI ID bld]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.02 HR (20 comps)}
+ItemDisplay[UNI ID 9ba]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.06 HR (12 comps)}
+ItemDisplay[UNI ID upk]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.25 HR (122 comps)}
+ItemDisplay[UNI ID 9dg]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.03 HR (8 comps)}
+ItemDisplay[UNI ID 9p9]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.2 HR (52 comps)}
+ItemDisplay[UNI ID cst]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.08 HR (84 comps)}
+ItemDisplay[UNI ID xng]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.12 HR (45 comps)}
+ItemDisplay[UNI ID drd STAT360=50]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (to All Skills): 1 HR (50 comps)}
+ItemDisplay[UNI ID drd STAT360=32]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Numsockets): 0.5 HR (388 comps)}
+ItemDisplay[UNI ID drd STAT360=38]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Lightning Resist, to Maximum Lightning R): 0.25 HR (23 comps)}
+ItemDisplay[UNI ID drd]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.47 HR (529 comps)}
+ItemDisplay[UNI ID 7tw]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.13 HR (636 comps)}
+ItemDisplay[UNI ID xlm]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.07 HR (36 comps)}
+ItemDisplay[UNI ID 7p7 STAT360=32]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Numsockets): 0.5 HR (380 comps)}
+ItemDisplay[UNI ID 7p7 STAT360=19]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Dmg%, Chance of Deadly Strike, Maxdamage): 0.3 HR (29 comps)}
+ItemDisplay[UNI ID 7p7]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.45 HR (368 comps)}
+ItemDisplay[UNI ID ulm]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.25 HR (950 comps)}
+ItemDisplay[UNI ID gma]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.14 HR (54 comps)}
+ItemDisplay[UNI ID vou]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.01 HR (8 comps)}
+ItemDisplay[UNI ID uhg STAT360=19]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Chance of Deadly Strike): 3 HR (112 comps)}
+ItemDisplay[UNI ID uhg STAT360=20]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Increased Attack Speed): 1.5 HR (82 comps)}
+ItemDisplay[UNI ID uhg STAT360=63]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Chance to Pierce): 1 HR (135 comps)}
+ItemDisplay[UNI ID uhg]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 1.14 HR (850 comps)}
+ItemDisplay[UNI ID amd]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.41 HR (592 comps)}
+ItemDisplay[UNI ID xrg]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.05 HR (26 comps)}
+ItemDisplay[UNI ID 9bt]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.05 HR (7 comps)}
+ItemDisplay[UNI ID 9bl]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.1 HR (42 comps)}
+ItemDisplay[UNI ID 7wc STAT360=32]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Numsockets): 0.6 HR (642 comps)}
+ItemDisplay[UNI ID 7wc STAT360=20]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Increased Attack Speed): 0.3 HR (31 comps)}
+ItemDisplay[UNI ID 7wc]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.51 HR (475 comps)}
+ItemDisplay[UNI ID sbb]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.05 HR (10 comps)}
+ItemDisplay[UNI ID zlb]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.33 HR (1235 comps)}
+ItemDisplay[UNI ID 9wn]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.01 HR (22 comps)}
+ItemDisplay[UNI ID 9ma]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.04 HR (20 comps)}
+ItemDisplay[UNI ID spk]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.02 HR (9 comps)}
+ItemDisplay[UNI ID 9gd]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.19 HR (74 comps)}
+ItemDisplay[UNI ID ob6]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.15 HR (107 comps)}
+ItemDisplay[UNI ID pax]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.01 HR (7 comps)}
+ItemDisplay[UNI ID btx]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.03 HR (5 comps)}
+ItemDisplay[UNI ID 9qs]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.06 HR (5 comps)}
+ItemDisplay[UNI ID 9gm]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.12 HR (331 comps)}
+ItemDisplay[UNI ID fla]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.07 HR (9 comps)}
+ItemDisplay[UNI ID wsc]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.01 HR (8 comps)}
+ItemDisplay[UNI ID 9sr]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.12 HR (35 comps)}
+ItemDisplay[UNI ID kri]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.05 HR (86 comps)}
+ItemDisplay[UNI ID 9b7]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.02 HR (19 comps)}
+ItemDisplay[UNI ID 9gi]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.06 HR (26 comps)}
+ItemDisplay[UNI ID gsd]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.3 HR (154 comps)}
+ItemDisplay[UNI ID 7s8]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.29 HR (792 comps)}
+ItemDisplay[UNI ID 9ta]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.05 HR (36 comps)}
+ItemDisplay[UNI ID xui]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.07 HR (228 comps)}
+ItemDisplay[UNI ID 9gs]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.33 HR (118 comps)}
+ItemDisplay[UNI ID amf]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.25 HR (822 comps)}
+ItemDisplay[UNI ID xit]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.07 HR (31 comps)}
+ItemDisplay[UNI ID ama]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.11 HR (354 comps)}
+ItemDisplay[UNI ID 7pa]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.37 HR (528 comps)}
+ItemDisplay[UNI ID xld]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.3 HR (623 comps)}
+ItemDisplay[UNI ID am5]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.1 HR (117 comps)}
+ItemDisplay[UNI ID urg]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.22 HR (375 comps)}
+ItemDisplay[UNI ID gwn]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.03 HR (34 comps)}
+ItemDisplay[UNI ID drf]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.26 HR (116 comps)}
+ItemDisplay[UNI ID xlg]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.17 HR (514 comps)}
+ItemDisplay[UNI ID 7br]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.12 HR (123 comps)}
+ItemDisplay[UNI ID bsh]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.03 HR (21 comps)}
+ItemDisplay[UNI ID 9la]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.22 HR (74 comps)}
+ItemDisplay[UNI ID 8bs]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.15 HR (25 comps)}
+ItemDisplay[UNI ID uuc]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.06 HR (181 comps)}
+ItemDisplay[UNI ID 7bk]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.33 HR (462 comps)}
+ItemDisplay[UNI ID xvb]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.41 HR (876 comps)}
+ItemDisplay[UNI ID 6sw]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.37 HR (416 comps)}
+ItemDisplay[UNI ID ba7]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.18 HR (176 comps)}
+ItemDisplay[UNI ID 6lw STAT360=19]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Dmg%, Chance of Deadly Strike, Maxdamage): 4.5 HR (76 comps)}
+ItemDisplay[UNI ID 6lw STAT360=20]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Dmg%, Increased Attack Speed, Maxdamage ): 4 HR (95 comps)}
+ItemDisplay[UNI ID 6lw STAT360=32]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Corrupt (Numsockets): 1 HR (1357 comps)}
+ItemDisplay[UNI ID 6lw]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 1.46 HR (759 comps)}
+ItemDisplay[UNI ID 8s8]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.27 HR (162 comps)}
+ItemDisplay[UNI ID 7dg]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.06 HR (93 comps)}
+ItemDisplay[UNI ID bac]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.1 HR (219 comps)}
+ItemDisplay[UNI ID 7gl]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.11 HR (329 comps)}
+ItemDisplay[UNI ID ung]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.37 HR (960 comps)}
+ItemDisplay[UNI ID 9sc]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.09 HR (24 comps)}
+ItemDisplay[UNI ID ame]: %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%GOLD%Live Est: 0.27 HR (203 comps)}
+// ==== END GG LIVE PRICES ====
 // ==== GG DEEP DELVE: post-ID roll & slam appraisal (measured S14 comps; values refreshed by Sync_PD2_Filter) ====
 Alias[HR_RIN_P75]: 0.5
 Alias[HR_RIN_P90]: 1
@@ -2327,20 +2623,20 @@ Alias[UNI_CI3_LOW]: 0.25
 Alias[UNI_CI3_MID]: 0.5
 Alias[UNI_CI3_HIGH]: 2
 Alias[UNI_CI3_CORR]: 2
-Alias[UNI_MARA_LOW]: 0.3
-Alias[UNI_MARA_MID]: 0.65
+Alias[UNI_MARA_LOW]: 0.35
+Alias[UNI_MARA_MID]: 0.75
 Alias[UNI_MARA_HIGH]: 2
 Alias[UNI_MARA_CORR]: 2
 Alias[UNI_UMC_LOW]: 0.1
-Alias[UNI_UMC_MID]: 0.15
-Alias[UNI_UMC_HIGH]: 0.4
+Alias[UNI_UMC_MID]: 0.2
+Alias[UNI_UMC_HIGH]: 0.5
 Alias[UNI_XTB_LOW]: 0.25
 Alias[UNI_XTB_MID]: 0.5
-Alias[UNI_XTB_HIGH]: 0.75
+Alias[UNI_XTB_HIGH]: 1
 Alias[UNI_XHB_LOW]: 0.25
 Alias[UNI_XHB_MID]: 0.45
 Alias[UNI_XHB_HIGH]: 1
-Alias[UNI_UIT_LOW]: 0.08
+Alias[UNI_UIT_LOW]: 0.09
 Alias[UNI_UIT_MID]: 0.15
 Alias[UNI_UIT_HIGH]: 0.5
 Alias[UNI_CM3_LOW]: 0.03
@@ -4259,3 +4555,296 @@ ItemDisplay[rtmo]: %MAP-0A%%RED%XxXxX %NAME% %RED%XxXxX%CONTINUE%
 ItemDisplay[rtmv]: %MAP-0A%%RED%XxXxX %NAME% %RED%XxXxX%CONTINUE%
 ItemDisplay[tes]: %MAP-4A%%GREEN%X%RED%><%BLUE%x%ORANGE% %NAME% %BLUE%x%RED%><%GREEN%X%CONTINUE%
 ItemDisplay[wss]: %MAP-62%%NAME%%CONTINUE%
+
+// ==== GG SLAM TABLE (auto-generated from the pd2trader corruption feed - do not hand-edit) ====
+ItemDisplay[UNI !ID 9b8]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Achilles Strike - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Increased Atta 0.25 HR (n=5)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 9b8 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Increased Atta 0.25 HR (n=5)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID 7qs]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Akarat's Devotion - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.00 HR (n=29) | Faster Cast Rate 0.50 HR (n=31) | Dmg%, Maxdamage Perc 0.25 HR (n=5)%CL%%GRAY%clean median 0.15 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7qs STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.00 HR (n=29) | Faster Cast Rate 0.50 HR (n=31) | Dmg%, Maxdamage Perc 0.25 HR (n=5)%CL%%GRAY%clean median 0.15 HR}
+ItemDisplay[UNI !ID pac]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Alma Negra - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.25 HR (n=83) | Numsockets 1.00 HR (n=751) | Cannot Be Frozen 0.25 HR (n=59)%CL%%GRAY%clean median 0.12 HR | corruption feed n>=5}
+ItemDisplay[UNI ID pac STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.25 HR (n=83) | Numsockets 1.00 HR (n=751) | Cannot Be Frozen 0.25 HR (n=59)%CL%%GRAY%clean median 0.12 HR}
+ItemDisplay[UNI !ID usk]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Andariels Visage - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.50 HR (n=169) | Numsockets 1.20 HR (n=1407) | Cannot Be Frozen 0.50 HR (n=160)%CL%%GRAY%clean median 0.25 HR | corruption feed n>=5}
+ItemDisplay[UNI ID usk STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.50 HR (n=169) | Numsockets 1.20 HR (n=1407) | Cannot Be Frozen 0.50 HR (n=160)%CL%%GRAY%clean median 0.25 HR}
+ItemDisplay[UNI !ID ulc]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Arachnid Mesh - corrupt with a WSS%CL%%GOLD%measured: Faster Cast Rate 6.00 HR (n=288) | to Maximum Cold Resi 1.00 HR (n=185) | All Resist, Cold Res 0.50 HR (n=131)%CL%%GRAY%clean median 0.25 HR | corruption feed n>=5}
+ItemDisplay[UNI ID ulc STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Faster Cast Rate 6.00 HR (n=288) | to Maximum Cold Resi 1.00 HR (n=185) | All Resist, Cold Res 0.50 HR (n=131)%CL%%GRAY%clean median 0.25 HR}
+ItemDisplay[UNI !ID 7sr]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Ariocs Needle - corrupt with a WSS%CL%%GOLD%measured: Numsockets 0.25 HR (n=489)%CL%%GRAY%clean median 0.04 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7sr STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Numsockets 0.25 HR (n=489)%CL%%GRAY%clean median 0.04 HR}
+ItemDisplay[UNI !ID 9bw]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Arm of King Leoric - corrupt with a WSS%CL%%GOLD%measured: to All Skills 2.50 HR (n=25)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 9bw STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 2.50 HR (n=25)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID baa]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Arreats Face - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.47 HR (n=50) | Numsockets 0.25 HR (n=353)%CL%%GRAY%clean median 0.10 HR | corruption feed n>=5}
+ItemDisplay[UNI ID baa STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.47 HR (n=50) | Numsockets 0.25 HR (n=353)%CL%%GRAY%clean median 0.10 HR}
+ItemDisplay[UNI !ID 9s8]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Athenas Wrath - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.50 HR (n=26) | Chance of Crushing B 0.25 HR (n=9)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 9s8 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.50 HR (n=26) | Chance of Crushing B 0.25 HR (n=9)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID xth]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Atmas Wail - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.00 HR (n=147) | Faster Cast Rate 0.25 HR (n=92)%CL%%GRAY%clean median 0.03 HR | corruption feed n>=5}
+ItemDisplay[UNI ID xth STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.00 HR (n=147) | Faster Cast Rate 0.25 HR (n=92)%CL%%GRAY%clean median 0.03 HR}
+ItemDisplay[UNI !ID sst]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Bane Ash - corrupt with a WSS%CL%%GOLD%measured: Numsockets 1.50 HR (n=5)%CL%%GRAY%clean median 2.00 HR | corruption feed n>=5}
+ItemDisplay[UNI ID sst STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Numsockets 1.50 HR (n=5)%CL%%GRAY%clean median 2.00 HR}
+ItemDisplay[UNI !ID 9tw]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Bartucs Cut-Throat - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.50 HR (n=25)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 9tw STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.50 HR (n=25)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID 9cm]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Bing Sz Wang - corrupt with a WSS%CL%%GOLD%measured: Numsockets 0.25 HR (n=9)%CL%%GRAY%clean median ? HR | corruption feed n>=5}
+ItemDisplay[UNI ID 9cm STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Numsockets 0.25 HR (n=9)%CL%%GRAY%clean median ? HR}
+ItemDisplay[UNI !ID 9kr]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Blackbogs Sharp - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.00 HR (n=8) | Numsockets 0.50 HR (n=132) | to Enemy Poison Resi 0.42 HR (n=12)%CL%%GRAY%clean median 0.15 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 9kr STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.00 HR (n=8) | Numsockets 0.50 HR (n=132) | to Enemy Poison Resi 0.42 HR (n=12)%CL%%GRAY%clean median 0.15 HR}
+ItemDisplay[UNI !ID 9gw]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Blackhand Key - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.00 HR (n=7)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 9gw STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.00 HR (n=7)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID uml]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Blackoak Shield - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.50 HR (n=9) | Faster Block Rate 0.25 HR (n=6)%CL%%GRAY%clean median 0.06 HR | corruption feed n>=5}
+ItemDisplay[UNI ID uml STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.50 HR (n=9) | Faster Block Rate 0.25 HR (n=6)%CL%%GRAY%clean median 0.06 HR}
+ItemDisplay[UNI !ID 9fc]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Blade of Ali Baba - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.75 HR (n=16) | Faster Cast Rate, to 0.40 HR (n=17) | Better Chance of Get 0.40 HR (n=56)%CL%%GRAY%clean median 0.15 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 9fc STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.75 HR (n=16) | Faster Cast Rate, to 0.40 HR (n=17) | Better Chance of Get 0.40 HR (n=56)%CL%%GRAY%clean median 0.15 HR}
+ItemDisplay[UNI !ID amb]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Bloodravens Charge - corrupt with a WSS%CL%%GOLD%measured: to Enemy Fire Resist 0.37 HR (n=8) | Increased Attack Spe 0.35 HR (n=10) | to All Skills 0.32 HR (n=18)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID amb STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to Enemy Fire Resist 0.37 HR (n=8) | Increased Attack Spe 0.35 HR (n=10) | to All Skills 0.32 HR (n=18)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID nee]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Boneflame - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.25 HR (n=51) | All Resist, Cold Res 0.25 HR (n=13) | Numsockets 0.25 HR (n=397)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID nee STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.25 HR (n=51) | All Resist, Cold Res 0.25 HR (n=13) | Numsockets 0.25 HR (n=397)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID 7o7]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Bonehew - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Maxdamage Perc 0.45 HR (n=8) | Dmg%, Increased Atta 0.25 HR (n=11) | Chance of Crushing B 0.25 HR (n=7)%CL%%GRAY%clean median 0.03 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7o7 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Maxdamage Perc 0.45 HR (n=8) | Dmg%, Increased Atta 0.25 HR (n=11) | Chance of Crushing B 0.25 HR (n=7)%CL%%GRAY%clean median 0.03 HR}
+ItemDisplay[UNI !ID 7bw]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Boneshade - corrupt with a WSS%CL%%GOLD%measured: to All Skills 3.00 HR (n=35) | Faster Cast Rate 0.50 HR (n=79) | Faster Cast Rate, to 0.25 HR (n=16)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7bw STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 3.00 HR (n=35) | Faster Cast Rate 0.50 HR (n=79) | Faster Cast Rate, to 0.25 HR (n=16)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID mau]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Bonesnap - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Chance of Dead 0.25 HR (n=5) | Chance of Crushing B 0.25 HR (n=5)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID mau STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Chance of Dead 0.25 HR (n=5) | Chance of Crushing B 0.25 HR (n=5)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID 6bs]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Brimstone Rain - corrupt with a WSS%CL%%GOLD%measured: to All Skills 4.25 HR (n=26) | to Enemy Fire Resist 0.75 HR (n=11) | Faster Cast Rate, to 0.50 HR (n=14)%CL%%GRAY%clean median 0.20 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 6bs STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 4.25 HR (n=26) | to Enemy Fire Resist 0.75 HR (n=11) | Faster Cast Rate, to 0.50 HR (n=14)%CL%%GRAY%clean median 0.20 HR}
+ItemDisplay[UNI !ID drb]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Cerebus Bite - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.32 HR (n=38) | Numsockets 0.25 HR (n=263)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID drb STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.32 HR (n=38) | Numsockets 0.25 HR (n=263)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID ba6]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Cyclopean Roar - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.25 HR (n=24)%CL%%GRAY%clean median 0.03 HR | corruption feed n>=5}
+ItemDisplay[UNI ID ba6 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.25 HR (n=24)%CL%%GRAY%clean median 0.03 HR}
+ItemDisplay[UNI !ID 7wa]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Death Cleaver - corrupt with a WSS%CL%%GOLD%measured: to All Skills 2.00 HR (n=22) | Faster Cast Rate 2.00 HR (n=15) | Dmg%, Maxdamage Perc 0.75 HR (n=27)%CL%%GRAY%clean median 0.25 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7wa STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 2.00 HR (n=22) | Faster Cast Rate 2.00 HR (n=15) | Dmg%, Maxdamage Perc 0.75 HR (n=27)%CL%%GRAY%clean median 0.25 HR}
+ItemDisplay[UNI !ID obf]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Deaths Fathom - corrupt with a WSS%CL%%GOLD%measured: to All Skills 2.50 HR (n=62) | Faster Cast Rate, to 0.75 HR (n=37) | Numsockets 0.50 HR (n=725)%CL%%GRAY%clean median 0.25 HR | corruption feed n>=5}
+ItemDisplay[UNI ID obf STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 2.50 HR (n=62) | Faster Cast Rate, to 0.75 HR (n=37) | Numsockets 0.50 HR (n=725)%CL%%GRAY%clean median 0.25 HR}
+ItemDisplay[UNI !ID 7gw]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Deaths Web - corrupt with a WSS%CL%%GOLD%measured: to Enemy Poison Resi 4.00 HR (n=33) | to All Skills 3.87 HR (n=36) | Faster Cast Rate 1.50 HR (n=90)%CL%%GRAY%clean median 0.50 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7gw STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to Enemy Poison Resi 4.00 HR (n=33) | to All Skills 3.87 HR (n=36) | Faster Cast Rate 1.50 HR (n=90)%CL%%GRAY%clean median 0.50 HR}
+ItemDisplay[UNI !ID 8rx]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Demon Machine - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Maxdamage Perc 1.00 HR (n=108) | Dmg%, Chance of Dead 0.75 HR (n=130) | Dmg%, Increased Atta 0.75 HR (n=88)%CL%%GRAY%clean median 0.06 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 8rx STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Maxdamage Perc 1.00 HR (n=108) | Dmg%, Chance of Dead 0.75 HR (n=130) | Dmg%, Increased Atta 0.75 HR (n=88)%CL%%GRAY%clean median 0.06 HR}
+ItemDisplay[UNI !ID bad]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Demonhorns Edge - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.75 HR (n=27) | Numsockets 0.27 HR (n=212)%CL%%GRAY%clean median 0.04 HR | corruption feed n>=5}
+ItemDisplay[UNI ID bad STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.75 HR (n=27) | Numsockets 0.27 HR (n=212)%CL%%GRAY%clean median 0.04 HR}
+ItemDisplay[UNI !ID 7s7]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Demons Arch - corrupt with a WSS%CL%%GOLD%measured: Chance of Deadly Str 0.50 HR (n=13) | Dmg%, Ignore Target' 0.35 HR (n=5) | Dmg%, Increased Atta 0.25 HR (n=11)%CL%%GRAY%clean median 0.03 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7s7 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Chance of Deadly Str 0.50 HR (n=13) | Dmg%, Ignore Target' 0.35 HR (n=5) | Dmg%, Increased Atta 0.25 HR (n=11)%CL%%GRAY%clean median 0.03 HR}
+ItemDisplay[UNI !ID drc]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Denmother - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.80 HR (n=87) | Cannot Be Frozen 0.27 HR (n=56)%CL%%GRAY%clean median 0.10 HR | corruption feed n>=5}
+ItemDisplay[UNI ID drc STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.80 HR (n=87) | Cannot Be Frozen 0.27 HR (n=56)%CL%%GRAY%clean median 0.10 HR}
+ItemDisplay[UNI !ID 7b7]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Doombringer - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Chance of Dead 1.00 HR (n=36) | Dmg%, Increased Atta 1.00 HR (n=69) | Dmg%, Maxdamage Perc 1.00 HR (n=31)%CL%%GRAY%clean median 0.04 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7b7 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Chance of Dead 1.00 HR (n=36) | Dmg%, Increased Atta 1.00 HR (n=69) | Dmg%, Maxdamage Perc 1.00 HR (n=31)%CL%%GRAY%clean median 0.04 HR}
+ItemDisplay[UNI !ID uvg]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Draculs Grasp - corrupt with a WSS%CL%%GOLD%measured: Increased Attack Spe 1.50 HR (n=193) | Dmg%, Maxdamage Perc 0.75 HR (n=127) | Chance of Deadly Str 0.50 HR (n=145)%CL%%GRAY%clean median 0.25 HR | corruption feed n>=5}
+ItemDisplay[UNI ID uvg STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Increased Attack Spe 1.50 HR (n=193) | Dmg%, Maxdamage Perc 0.75 HR (n=127) | Chance of Deadly Str 0.50 HR (n=145)%CL%%GRAY%clean median 0.25 HR}
+ItemDisplay[UNI !ID pae]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Dragonscale - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.87 HR (n=28) | All Resist, Cold Res 0.35 HR (n=9) | Fire Resist, to Maxi 0.25 HR (n=14)%CL%%GRAY%clean median 0.15 HR | corruption feed n>=5}
+ItemDisplay[UNI ID pae STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.87 HR (n=28) | All Resist, Cold Res 0.35 HR (n=9) | Fire Resist, to Maxi 0.25 HR (n=14)%CL%%GRAY%clean median 0.15 HR}
+ItemDisplay[UNI !ID 9wh]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Earthshaker - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.75 HR (n=21) | Faster Cast Rate, to 0.25 HR (n=5)%CL%%GRAY%clean median 0.03 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 9wh STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.75 HR (n=21) | Faster Cast Rate, to 0.25 HR (n=5)%CL%%GRAY%clean median 0.03 HR}
+ItemDisplay[UNI !ID obd]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Embersworn - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.00 HR (n=32) | to Enemy Fire Resist 0.25 HR (n=35)%CL%%GRAY%clean median 0.03 HR | corruption feed n>=5}
+ItemDisplay[UNI ID obd STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.00 HR (n=32) | to Enemy Fire Resist 0.25 HR (n=35)%CL%%GRAY%clean median 0.03 HR}
+ItemDisplay[UNI !ID 8cb]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Endlesshail - corrupt with a WSS%CL%%GOLD%measured: Numsockets 0.25 HR (n=169)%CL%%GRAY%clean median 0.10 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 8cb STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Numsockets 0.25 HR (n=169)%CL%%GRAY%clean median 0.10 HR}
+ItemDisplay[UNI !ID obc]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Eschutas Temper - corrupt with a WSS%CL%%GOLD%measured: to All Skills 3.00 HR (n=61) | Faster Cast Rate 0.50 HR (n=127) | Faster Cast Rate, to 0.50 HR (n=32)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID obc STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 3.00 HR (n=61) | Faster Cast Rate 0.50 HR (n=127) | Faster Cast Rate, to 0.50 HR (n=32)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID 7gi]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Executioners Justice - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Maxdamage Perc 0.50 HR (n=7) | Dmg%, Chance of Dead 0.25 HR (n=6) | Dmg%, Increased Atta 0.25 HR (n=17)%CL%%GRAY%clean median 0.04 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7gi STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Maxdamage Perc 0.50 HR (n=7) | Dmg%, Chance of Dead 0.25 HR (n=6) | Dmg%, Increased Atta 0.25 HR (n=17)%CL%%GRAY%clean median 0.04 HR}
+ItemDisplay[UNI !ID dr6]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Fenris - corrupt with a WSS%CL%%GOLD%measured: to All Skills 2.50 HR (n=54) | Cannot Be Frozen 0.25 HR (n=70) | Numsockets 0.25 HR (n=455)%CL%%GRAY%clean median 0.09 HR | corruption feed n>=5}
+ItemDisplay[UNI ID dr6 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 2.50 HR (n=54) | Cannot Be Frozen 0.25 HR (n=70) | Numsockets 0.25 HR (n=455)%CL%%GRAY%clean median 0.09 HR}
+ItemDisplay[UNI !ID 7lw]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Firelizards Talons - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.50 HR (n=30) | Numsockets 0.50 HR (n=696) | to Enemy Fire Resist 0.30 HR (n=43)%CL%%GRAY%clean median 0.10 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7lw STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.50 HR (n=30) | Numsockets 0.50 HR (n=696) | to Enemy Fire Resist 0.30 HR (n=43)%CL%%GRAY%clean median 0.10 HR}
+ItemDisplay[UNI !ID 7gs]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Flamebellow - corrupt with a WSS%CL%%GOLD%measured: Increased Attack Spe 0.45 HR (n=6) | to Enemy Fire Resist 0.25 HR (n=22)%CL%%GRAY%clean median 0.07 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7gs STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Increased Attack Spe 0.45 HR (n=6) | to Enemy Fire Resist 0.25 HR (n=22)%CL%%GRAY%clean median 0.07 HR}
+ItemDisplay[UNI !ID 7kr]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Fleshripper - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Maxdamage Perc 0.37 HR (n=6) | Dmg%, Ignore Target' 0.30 HR (n=7)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7kr STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Maxdamage Perc 0.37 HR (n=6) | Dmg%, Ignore Target' 0.30 HR (n=7)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID 7ts]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Gargoyles Bite - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.00 HR (n=11) | Faster Cast Rate, to 0.37 HR (n=6) | Numsockets 0.25 HR (n=121)%CL%%GRAY%clean median 0.04 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7ts STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.00 HR (n=11) | Faster Cast Rate, to 0.37 HR (n=6) | Numsockets 0.25 HR (n=121)%CL%%GRAY%clean median 0.04 HR}
+ItemDisplay[UNI !ID xow]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Gerkes Sanctuary - corrupt with a WSS%CL%%GOLD%measured: to All Skills 2.00 HR (n=71) | Numsockets 0.45 HR (n=529) | Cannot Be Frozen 0.25 HR (n=74)%CL%%GRAY%clean median 0.09 HR | corruption feed n>=5}
+ItemDisplay[UNI ID xow STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 2.00 HR (n=71) | Numsockets 0.45 HR (n=529) | Cannot Be Frozen 0.25 HR (n=74)%CL%%GRAY%clean median 0.09 HR}
+ItemDisplay[UNI !ID 7bl]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Ghostflame - corrupt with a WSS%CL%%GOLD%measured: to All Skills 2.50 HR (n=50) | to Enemy Fire Resist 0.50 HR (n=24) | Dmg%, Chance of Dead 0.45 HR (n=22)%CL%%GRAY%clean median 0.20 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7bl STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 2.50 HR (n=50) | to Enemy Fire Resist 0.50 HR (n=24) | Dmg%, Chance of Dead 0.45 HR (n=22)%CL%%GRAY%clean median 0.20 HR}
+ItemDisplay[UNI !ID 7ta]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Gimmershred - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Increased Atta 0.25 HR (n=5) | Dmg%, Ignore Target' 0.25 HR (n=5)%CL%%GRAY%clean median 0.02 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7ta STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Increased Atta 0.25 HR (n=5) | Dmg%, Ignore Target' 0.25 HR (n=5)%CL%%GRAY%clean median 0.02 HR}
+ItemDisplay[UNI !ID 9wc]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Grims Burning Dead - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.37 HR (n=22)%CL%%GRAY%clean median 0.04 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 9wc STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.37 HR (n=22)%CL%%GRAY%clean median 0.04 HR}
+ItemDisplay[UNI !ID xlt]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Guardian Angel - corrupt with a WSS%CL%%GOLD%measured: to All Skills 4.00 HR (n=93) | Faster Cast Rate 0.64 HR (n=44) | Cannot Be Frozen 0.50 HR (n=74)%CL%%GRAY%clean median 0.25 HR | corruption feed n>=5}
+ItemDisplay[UNI ID xlt STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 4.00 HR (n=93) | Faster Cast Rate 0.64 HR (n=44) | Cannot Be Frozen 0.50 HR (n=74)%CL%%GRAY%clean median 0.25 HR}
+ItemDisplay[UNI !ID 6rx]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Gut Siphon - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Increased Atta 0.50 HR (n=30) | Chance of Crushing B 0.50 HR (n=5) | Numsockets 0.35 HR (n=679)%CL%%GRAY%clean median 0.08 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 6rx STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Increased Atta 0.50 HR (n=30) | Chance of Crushing B 0.50 HR (n=5) | Numsockets 0.35 HR (n=679)%CL%%GRAY%clean median 0.08 HR}
+ItemDisplay[UNI !ID 7bs]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Hadriels Hand - corrupt with a WSS%CL%%GOLD%measured: Numsockets 38.00 HR (n=10)%CL%%GRAY%clean median 48.00 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7bs STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Numsockets 38.00 HR (n=10)%CL%%GRAY%clean median 48.00 HR}
+ItemDisplay[UNI !ID bae]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Halaberds Reign - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.50 HR (n=57) | Numsockets 0.50 HR (n=501) | All Resist, Cold Res 0.25 HR (n=26)%CL%%GRAY%clean median 0.10 HR | corruption feed n>=5}
+ItemDisplay[UNI ID bae STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.50 HR (n=57) | Numsockets 0.50 HR (n=501) | All Resist, Cold Res 0.25 HR (n=26)%CL%%GRAY%clean median 0.10 HR}
+ItemDisplay[UNI !ID 9ws]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Hand of Blessed Light - corrupt with a WSS%CL%%GOLD%measured: to All Skills 2.75 HR (n=36) | Numsockets 1.50 HR (n=414) | Faster Cast Rate 1.00 HR (n=46)%CL%%GRAY%clean median 0.62 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 9ws STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 2.75 HR (n=36) | Numsockets 1.50 HR (n=414) | Faster Cast Rate 1.00 HR (n=46)%CL%%GRAY%clean median 0.62 HR}
+ItemDisplay[UNI !ID ush]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Head Hunters Glory - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.50 HR (n=34) | Physical Damage Take 1.00 HR (n=11) | Cannot Be Frozen 0.75 HR (n=37)%CL%%GRAY%clean median 0.20 HR | corruption feed n>=5}
+ItemDisplay[UNI ID ush STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.50 HR (n=34) | Physical Damage Take 1.00 HR (n=11) | Cannot Be Frozen 0.75 HR (n=37)%CL%%GRAY%clean median 0.20 HR}
+ItemDisplay[UNI !ID 6hx]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Hellrack - corrupt with a WSS%CL%%GOLD%measured: Chance of Crushing B 1.00 HR (n=16) | to Enemy Fire Resist 1.00 HR (n=17) | to All Skills 0.75 HR (n=14)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 6hx STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Chance of Crushing B 1.00 HR (n=16) | to Enemy Fire Resist 1.00 HR (n=17) | to All Skills 0.75 HR (n=14)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID 7bt]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Hellslayer - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Increased Atta 0.32 HR (n=44) | Dmg%, Ignore Target' 0.25 HR (n=7) | Chance of Crushing B 0.25 HR (n=27)%CL%%GRAY%clean median 0.04 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7bt STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Increased Atta 0.32 HR (n=44) | Dmg%, Ignore Target' 0.25 HR (n=7) | Chance of Crushing B 0.25 HR (n=27)%CL%%GRAY%clean median 0.04 HR}
+ItemDisplay[UNI !ID pa9]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Herald of Zakarum - corrupt with a WSS%CL%%GOLD%measured: to All Skills 2.50 HR (n=31) | Physical Damage Take 0.75 HR (n=26) | Cannot Be Frozen 0.72 HR (n=50)%CL%%GRAY%clean median 0.27 HR | corruption feed n>=5}
+ItemDisplay[UNI ID pa9 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 2.50 HR (n=31) | Physical Damage Take 0.75 HR (n=26) | Cannot Be Frozen 0.72 HR (n=50)%CL%%GRAY%clean median 0.27 HR}
+ItemDisplay[UNI !ID nea]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Homunculus - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.40 HR (n=25)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID nea STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.40 HR (n=25)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID gix]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Humongous - corrupt with a WSS%CL%%GOLD%measured: Numsockets 0.25 HR (n=40)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID gix STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Numsockets 0.25 HR (n=40)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID 7wb]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Jade Talon - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.00 HR (n=50) | Numsockets 0.25 HR (n=682) | to Enemy Fire Resist 0.25 HR (n=14)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7wb STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.00 HR (n=50) | Numsockets 0.25 HR (n=682) | to Enemy Fire Resist 0.25 HR (n=14)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID dra]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Jalals Mane - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.50 HR (n=71) | Numsockets 0.30 HR (n=551)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID dra STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.50 HR (n=71) | Numsockets 0.30 HR (n=551)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID ne6]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Kalans Legacy - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.87 HR (n=14) | Cannot Be Frozen 0.25 HR (n=21)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID ne6 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.87 HR (n=14) | Cannot Be Frozen 0.25 HR (n=21)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID ci2]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Kiras Guardian - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.00 HR (n=135) | Numsockets 0.50 HR (n=1489)%CL%%GRAY%clean median 0.15 HR | corruption feed n>=5}
+ItemDisplay[UNI ID ci2 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.00 HR (n=135) | Numsockets 0.50 HR (n=1489)%CL%%GRAY%clean median 0.15 HR}
+ItemDisplay[UNI !ID 7b8]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Lacerator - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Increased Atta 0.50 HR (n=16) | Dmg%, Ignore Target' 0.30 HR (n=16) | Dmg%, Chance of Dead 0.25 HR (n=14)%CL%%GRAY%clean median 0.04 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7b8 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Increased Atta 0.50 HR (n=16) | Dmg%, Ignore Target' 0.30 HR (n=16) | Dmg%, Chance of Dead 0.25 HR (n=14)%CL%%GRAY%clean median 0.04 HR}
+ItemDisplay[UNI !ID xpk]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Lance Guard - corrupt with a WSS%CL%%GOLD%measured: to All Skills 2.50 HR (n=25) | Cannot Be Frozen 0.50 HR (n=30) | Faster Cast Rate 0.50 HR (n=17)%CL%%GRAY%clean median 0.20 HR | corruption feed n>=5}
+ItemDisplay[UNI ID xpk STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 2.50 HR (n=25) | Cannot Be Frozen 0.50 HR (n=30) | Faster Cast Rate 0.50 HR (n=17)%CL%%GRAY%clean median 0.20 HR}
+ItemDisplay[UNI !ID 8lx]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Langer Briser - corrupt with a WSS%CL%%GOLD%measured: Numsockets 0.25 HR (n=15)%CL%%GRAY%clean median 0.03 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 8lx STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Numsockets 0.25 HR (n=15)%CL%%GRAY%clean median 0.03 HR}
+ItemDisplay[UNI !ID xsh]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Lidless Wall - corrupt with a WSS%CL%%GOLD%measured: to All Skills 3.10 HR (n=157) | Numsockets 0.25 HR (n=1051)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID xsh STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 3.10 HR (n=157) | Numsockets 0.25 HR (n=1051)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID am9]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Lycanders Flank - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Chance of Dead 0.50 HR (n=17)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID am9 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Chance of Dead 0.50 HR (n=17)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID 9ar]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Mage Slayer - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.75 HR (n=6)%CL%%GRAY%clean median 0.02 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 9ar STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.75 HR (n=6)%CL%%GRAY%clean median 0.02 HR}
+ItemDisplay[UNI !ID 6ws]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Mang Songs Lesson - corrupt with a WSS%CL%%GOLD%measured: to All Skills 3.00 HR (n=17) | Numsockets 1.50 HR (n=606) | Faster Cast Rate, to 1.00 HR (n=17)%CL%%GRAY%clean median 0.87 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 6ws STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 3.00 HR (n=17) | Numsockets 1.50 HR (n=606) | Faster Cast Rate, to 1.00 HR (n=17)%CL%%GRAY%clean median 0.87 HR}
+ItemDisplay[UNI !ID umb]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Marrowwalk - corrupt with a WSS%CL%%GOLD%measured: Physical Damage Take 0.50 HR (n=71) | Faster Run/Walk 0.50 HR (n=95) | All Resist, Cold Res 0.25 HR (n=75)%CL%%GRAY%clean median 0.15 HR | corruption feed n>=5}
+ItemDisplay[UNI ID umb STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Physical Damage Take 0.50 HR (n=71) | Faster Run/Walk 0.50 HR (n=95) | All Resist, Cold Res 0.25 HR (n=75)%CL%%GRAY%clean median 0.15 HR}
+ItemDisplay[UNI !ID ned]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Martyrdom - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.50 HR (n=47) | Numsockets 0.50 HR (n=435)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID ned STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.50 HR (n=47) | Numsockets 0.50 HR (n=435)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID uow]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Medusas Gaze - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.00 HR (n=134) | Cannot Be Frozen 0.25 HR (n=64) | Faster Cast Rate 0.25 HR (n=62)%CL%%GRAY%clean median 0.07 HR | corruption feed n>=5}
+ItemDisplay[UNI ID uow STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.00 HR (n=134) | Cannot Be Frozen 0.25 HR (n=64) | Faster Cast Rate 0.25 HR (n=62)%CL%%GRAY%clean median 0.07 HR}
+ItemDisplay[UNI !ID ulb]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Merman's Sprocket - corrupt with a WSS%CL%%GOLD%measured: Faster Run/Walk 0.75 HR (n=162)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID ulb STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Faster Run/Walk 0.75 HR (n=162)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID 7ga]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Messerschmidts Reaver - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Increased Atta 0.50 HR (n=11) | Dmg%, Chance of Dead 0.25 HR (n=7) | Dmg%, Ignore Target' 0.25 HR (n=13)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7ga STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Increased Atta 0.50 HR (n=11) | Dmg%, Chance of Dead 0.25 HR (n=7) | Dmg%, Ignore Target' 0.25 HR (n=13)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[SET !ID ci0]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Naj's Circlet - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.25 HR (n=15)%CL%%GRAY%clean median 0.02 HR | corruption feed n>=5}
+ItemDisplay[SET ID ci0 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.25 HR (n=15)%CL%%GRAY%clean median 0.02 HR}
+ItemDisplay[UNI !ID uvc]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Nosferatus Coil - corrupt with a WSS%CL%%GOLD%measured: Increased Attack Spe 1.50 HR (n=127) | Faster Run/Walk 0.50 HR (n=98) | Chance to Pierce 0.50 HR (n=153)%CL%%GRAY%clean median 0.20 HR | corruption feed n>=5}
+ItemDisplay[UNI ID uvc STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Increased Attack Spe 1.50 HR (n=127) | Faster Run/Walk 0.50 HR (n=98) | Chance to Pierce 0.50 HR (n=153)%CL%%GRAY%clean median 0.20 HR}
+ItemDisplay[UNI !ID utg]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Occultist - corrupt with a WSS%CL%%GOLD%measured: Faster Cast Rate 3.00 HR (n=158) | to Mana after each K 0.50 HR (n=121) | All Resist, Cold Res 0.25 HR (n=66)%CL%%GRAY%clean median 0.17 HR | corruption feed n>=5}
+ItemDisplay[UNI ID utg STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Faster Cast Rate 3.00 HR (n=158) | to Mana after each K 0.50 HR (n=121) | All Resist, Cold Res 0.25 HR (n=66)%CL%%GRAY%clean median 0.17 HR}
+ItemDisplay[UNI !ID 9ls]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Plague Bearer - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.25 HR (n=22) | Numsockets 0.25 HR (n=439)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 9ls STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.25 HR (n=22) | Numsockets 0.25 HR (n=439)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID utp]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Purgatory - corrupt with a WSS%CL%%GOLD%measured: Enhanced Defense, Re 0.50 HR (n=9) | All Resist, Cold Res 0.32 HR (n=8) | to All Skills 0.25 HR (n=20)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID utp STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Enhanced Defense, Re 0.50 HR (n=9) | All Resist, Cold Res 0.32 HR (n=8) | to All Skills 0.25 HR (n=20)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID 8mx]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Pus Spitter - corrupt with a WSS%CL%%GOLD%measured: Increased Attack Spe 0.30 HR (n=84) | Dmg%, Increased Atta 0.25 HR (n=35) | to All Skills 0.25 HR (n=69)%CL%%GRAY%clean median 0.10 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 8mx STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Increased Attack Spe 0.30 HR (n=84) | Dmg%, Increased Atta 0.25 HR (n=35) | to All Skills 0.25 HR (n=69)%CL%%GRAY%clean median 0.10 HR}
+ItemDisplay[UNI !ID xtp]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Que-Hegans Wisdom - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.75 HR (n=143) | Faster Cast Rate 0.25 HR (n=51)%CL%%GRAY%clean median 0.03 HR | corruption feed n>=5}
+ItemDisplay[UNI ID xtp STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.75 HR (n=143) | Faster Cast Rate 0.25 HR (n=51)%CL%%GRAY%clean median 0.03 HR}
+ItemDisplay[UNI !ID dr2]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Quetzalcoatl - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.40 HR (n=21)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID dr2 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.40 HR (n=21)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID xts]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Radaments Sphere - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.00 HR (n=21) | to Maximum Poison Re 0.25 HR (n=7)%CL%%GRAY%clean median 0.03 HR | corruption feed n>=5}
+ItemDisplay[UNI ID xts STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.00 HR (n=21) | to Maximum Poison Re 0.25 HR (n=7)%CL%%GRAY%clean median 0.03 HR}
+ItemDisplay[UNI !ID baf]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Raekor's Virtue - corrupt with a WSS%CL%%GOLD%measured: Cannot Be Frozen 0.50 HR (n=25) | Numsockets 0.50 HR (n=226) | to All Skills 0.25 HR (n=15)%CL%%GRAY%clean median 0.15 HR | corruption feed n>=5}
+ItemDisplay[UNI ID baf STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Cannot Be Frozen 0.50 HR (n=25) | Numsockets 0.50 HR (n=226) | to All Skills 0.25 HR (n=15)%CL%%GRAY%clean median 0.15 HR}
+ItemDisplay[UNI !ID lbw]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Raven Claw - corrupt with a WSS%CL%%GOLD%measured: Numsockets 0.25 HR (n=9)%CL%%GRAY%clean median 0.04 HR | corruption feed n>=5}
+ItemDisplay[UNI ID lbw STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Numsockets 0.25 HR (n=9)%CL%%GRAY%clean median 0.04 HR}
+ItemDisplay[UNI !ID dre]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Ravenlore - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.50 HR (n=41) | Life after each Kill 0.25 HR (n=13) | Numsockets 0.25 HR (n=380)%CL%%GRAY%clean median 0.10 HR | corruption feed n>=5}
+ItemDisplay[UNI ID dre STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.50 HR (n=41) | Life after each Kill 0.25 HR (n=13) | Numsockets 0.25 HR (n=380)%CL%%GRAY%clean median 0.10 HR}
+ItemDisplay[UNI !ID 8ls]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Ribcracker - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Increased Atta 1.50 HR (n=17) | Chance of Crushing B 1.50 HR (n=9) | Increased Attack Spe 1.12 HR (n=10)%CL%%GRAY%clean median 0.25 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 8ls STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Increased Atta 1.50 HR (n=17) | Chance of Crushing B 1.50 HR (n=9) | Increased Attack Spe 1.12 HR (n=10)%CL%%GRAY%clean median 0.25 HR}
+ItemDisplay[UNI !ID xkp]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Rockstopper - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.35 HR (n=6) | Cannot Be Frozen 0.25 HR (n=9)%CL%%GRAY%clean median 0.04 HR | corruption feed n>=5}
+ItemDisplay[UNI ID xkp STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.35 HR (n=6) | Cannot Be Frozen 0.25 HR (n=9)%CL%%GRAY%clean median 0.04 HR}
+ItemDisplay[UNI !ID cbw]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Rogues Bow - corrupt with a WSS%CL%%GOLD%measured: Numsockets 0.25 HR (n=20)%CL%%GRAY%clean median 0.03 HR | corruption feed n>=5}
+ItemDisplay[UNI ID cbw STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Numsockets 0.25 HR (n=20)%CL%%GRAY%clean median 0.03 HR}
+ItemDisplay[UNI !ID 72a]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Rune Master - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Ignore Target' 0.75 HR (n=11) | Dmg%, Maxdamage Perc 0.75 HR (n=9) | Dmg%, Chance of Dead 0.50 HR (n=23)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 72a STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Ignore Target' 0.75 HR (n=11) | Dmg%, Maxdamage Perc 0.75 HR (n=9) | Dmg%, Chance of Dead 0.50 HR (n=23)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID neg]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Sacred Totem - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.95 HR (n=24) | Numsockets 0.25 HR (n=186)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID neg STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.95 HR (n=24) | Numsockets 0.25 HR (n=186)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID uhl]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Sage's Defiance - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.50 HR (n=49) | Cannot Be Frozen 0.25 HR (n=39)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID uhl STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.50 HR (n=49) | Cannot Be Frozen 0.25 HR (n=39)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID uvb]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Sandstorm Trek - corrupt with a WSS%CL%%GOLD%measured: to Maximum Poison Re 0.31 HR (n=68) | Cold Resist, to Maxi 0.25 HR (n=72) | Fire Resist, to Maxi 0.25 HR (n=84)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID uvb STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to Maximum Poison Re 0.31 HR (n=68) | Cold Resist, to Maxi 0.25 HR (n=72) | Fire Resist, to Maxi 0.25 HR (n=84)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID uhb]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Shadow Dancer - corrupt with a WSS%CL%%GOLD%measured: Replenish Life 2.25 HR (n=32) | Faster Run/Walk 0.65 HR (n=65) | to Mana after each K 0.50 HR (n=64)%CL%%GRAY%clean median 0.10 HR | corruption feed n>=5}
+ItemDisplay[UNI ID uhb STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Replenish Life 2.25 HR (n=32) | Faster Run/Walk 0.65 HR (n=65) | to Mana after each K 0.50 HR (n=64)%CL%%GRAY%clean median 0.10 HR}
+ItemDisplay[UNI !ID 7cs]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Shadowkiller - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.00 HR (n=36) | Faster Cast Rate 0.25 HR (n=81)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7cs STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.00 HR (n=36) | Faster Cast Rate 0.25 HR (n=81)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID xhn]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Shaftstop - corrupt with a WSS%CL%%GOLD%measured: Physical Damage Take 1.12 HR (n=62) | Physical Damage Take 0.50 HR (n=49) | Fire Resist, to Maxi 0.50 HR (n=47)%CL%%GRAY%clean median 0.20 HR | corruption feed n>=5}
+ItemDisplay[UNI ID xhn STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Physical Damage Take 1.12 HR (n=62) | Physical Damage Take 0.50 HR (n=49) | Fire Resist, to Maxi 0.50 HR (n=47)%CL%%GRAY%clean median 0.20 HR}
+ItemDisplay[UNI !ID 7di]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Shatterblade - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.50 HR (n=7) | to Enemy Cold Resist 0.45 HR (n=6)%CL%%GRAY%clean median 0.03 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7di STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.50 HR (n=7) | to Enemy Cold Resist 0.45 HR (n=6)%CL%%GRAY%clean median 0.03 HR}
+ItemDisplay[UNI !ID uhc]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Siggard's Staunch - corrupt with a WSS%CL%%GOLD%measured: Faster Cast Rate 4.00 HR (n=111) | Increased Attack Spe 2.50 HR (n=102) | Faster Run/Walk 1.75 HR (n=86)%CL%%GRAY%clean median 0.50 HR | corruption feed n>=5}
+ItemDisplay[UNI ID uhc STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Faster Cast Rate 4.00 HR (n=111) | Increased Attack Spe 2.50 HR (n=102) | Faster Run/Walk 1.75 HR (n=86)%CL%%GRAY%clean median 0.50 HR}
+ItemDisplay[UNI !ID xea]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Skin of the Vipermagi - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.50 HR (n=179) | Faster Cast Rate 0.50 HR (n=125) | All Resist, Cold Res 0.25 HR (n=55)%CL%%GRAY%clean median 0.10 HR | corruption feed n>=5}
+ItemDisplay[UNI ID xea STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.50 HR (n=179) | Faster Cast Rate 0.50 HR (n=125) | All Resist, Cold Res 0.25 HR (n=55)%CL%%GRAY%clean median 0.10 HR}
+ItemDisplay[UNI !ID 8ws]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Skull Collector - corrupt with a WSS%CL%%GOLD%measured: to All Skills 2.00 HR (n=34) | Numsockets 0.50 HR (n=662) | to Enemy Poison Resi 0.30 HR (n=20)%CL%%GRAY%clean median 0.10 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 8ws STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 2.00 HR (n=34) | Numsockets 0.50 HR (n=662) | to Enemy Poison Resi 0.30 HR (n=20)%CL%%GRAY%clean median 0.10 HR}
+ItemDisplay[UNI !ID xpl]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Skullders Ire - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.00 HR (n=83) | Numsockets 0.40 HR (n=465) | Faster Cast Rate 0.37 HR (n=36)%CL%%GRAY%clean median 0.15 HR | corruption feed n>=5}
+ItemDisplay[UNI ID xpl STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.00 HR (n=83) | Numsockets 0.40 HR (n=465) | Faster Cast Rate 0.37 HR (n=36)%CL%%GRAY%clean median 0.15 HR}
+ItemDisplay[UNI !ID obe]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Skyfall - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.87 HR (n=54) | Faster Cast Rate, to 1.50 HR (n=53) | to Enemy Lightning R 1.00 HR (n=31)%CL%%GRAY%clean median 0.15 HR | corruption feed n>=5}
+ItemDisplay[UNI ID obe STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.87 HR (n=54) | Faster Cast Rate, to 1.50 HR (n=53) | to Enemy Lightning R 1.00 HR (n=31)%CL%%GRAY%clean median 0.15 HR}
+ItemDisplay[UNI !ID umg]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Soul Drainer - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Maxdamage Perc 5.00 HR (n=220) | Chance of Deadly Str 4.00 HR (n=182) | Increased Attack Spe 1.00 HR (n=159)%CL%%GRAY%clean median 0.25 HR | corruption feed n>=5}
+ItemDisplay[UNI ID umg STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Maxdamage Perc 5.00 HR (n=220) | Chance of Deadly Str 4.00 HR (n=182) | Increased Attack Spe 1.00 HR (n=159)%CL%%GRAY%clean median 0.25 HR}
+ItemDisplay[UNI !ID urs]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Spectral Plate - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.50 HR (n=75) | Numsockets 0.30 HR (n=654) | Faster Run/Walk 0.25 HR (n=56)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID urs STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.50 HR (n=75) | Numsockets 0.30 HR (n=654) | Faster Run/Walk 0.25 HR (n=56)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID upk]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Spike Thorn - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.75 HR (n=18) | Cannot Be Frozen 0.25 HR (n=19) | Numsockets 0.25 HR (n=104)%CL%%GRAY%clean median 0.15 HR | corruption feed n>=5}
+ItemDisplay[UNI ID upk STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.75 HR (n=18) | Cannot Be Frozen 0.25 HR (n=19) | Numsockets 0.25 HR (n=104)%CL%%GRAY%clean median 0.15 HR}
+ItemDisplay[UNI !ID xng]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Spirit Forge - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.12 HR (n=6) | Cannot Be Frozen 0.25 HR (n=5)%CL%%GRAY%clean median 0.03 HR | corruption feed n>=5}
+ItemDisplay[UNI ID xng STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.12 HR (n=6) | Cannot Be Frozen 0.25 HR (n=5)%CL%%GRAY%clean median 0.03 HR}
+ItemDisplay[UNI !ID drd]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Spirit Keeper - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.00 HR (n=50) | Numsockets 0.50 HR (n=388) | Lightning Resist, to 0.25 HR (n=23)%CL%%GRAY%clean median 0.10 HR | corruption feed n>=5}
+ItemDisplay[UNI ID drd STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.00 HR (n=50) | Numsockets 0.50 HR (n=388) | Lightning Resist, to 0.25 HR (n=23)%CL%%GRAY%clean median 0.10 HR}
+ItemDisplay[UNI !ID 7tw]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Stalker's Cull - corrupt with a WSS%CL%%GOLD%measured: to Enemy Poison Resi 1.00 HR (n=9) | Dmg%, Increased Atta 0.50 HR (n=15) | Dmg%, Chance of Dead 0.25 HR (n=19)%CL%%GRAY%clean median 0.04 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7tw STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to Enemy Poison Resi 1.00 HR (n=9) | Dmg%, Increased Atta 0.50 HR (n=15) | Dmg%, Chance of Dead 0.25 HR (n=19)%CL%%GRAY%clean median 0.04 HR}
+ItemDisplay[UNI !ID 7p7]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Steel Pillar - corrupt with a WSS%CL%%GOLD%measured: Numsockets 0.50 HR (n=380) | Dmg%, Increased Atta 0.40 HR (n=19) | Dmg%, Chance of Dead 0.30 HR (n=29)%CL%%GRAY%clean median 0.10 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7p7 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Numsockets 0.50 HR (n=380) | Dmg%, Increased Atta 0.40 HR (n=19) | Dmg%, Chance of Dead 0.30 HR (n=29)%CL%%GRAY%clean median 0.10 HR}
+ItemDisplay[UNI !ID ulm]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Steel Shade - corrupt with a WSS%CL%%GOLD%measured: to All Skills 3.00 HR (n=128) | Cannot Be Frozen 0.25 HR (n=95) | Numsockets 0.25 HR (n=688)%CL%%GRAY%clean median 0.09 HR | corruption feed n>=5}
+ItemDisplay[UNI ID ulm STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 3.00 HR (n=128) | Cannot Be Frozen 0.25 HR (n=95) | Numsockets 0.25 HR (n=688)%CL%%GRAY%clean median 0.09 HR}
+ItemDisplay[UNI !ID gma]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Steeldriver - corrupt with a WSS%CL%%GOLD%measured: Numsockets 0.25 HR (n=23)%CL%%GRAY%clean median 0.02 HR | corruption feed n>=5}
+ItemDisplay[UNI ID gma STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Numsockets 0.25 HR (n=23)%CL%%GRAY%clean median 0.02 HR}
+ItemDisplay[UNI !ID uhg]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Steelrend - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Maxdamage Perc 5.00 HR (n=108) | Chance of Deadly Str 3.00 HR (n=112) | Increased Attack Spe 1.50 HR (n=82)%CL%%GRAY%clean median 0.50 HR | corruption feed n>=5}
+ItemDisplay[UNI ID uhg STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Maxdamage Perc 5.00 HR (n=108) | Chance of Deadly Str 3.00 HR (n=112) | Increased Attack Spe 1.50 HR (n=82)%CL%%GRAY%clean median 0.50 HR}
+ItemDisplay[UNI !ID amd]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Stoneraven - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Increased Atta 0.50 HR (n=40) | Chance of Crushing B 0.37 HR (n=14) | Dmg%, Chance of Dead 0.25 HR (n=20)%CL%%GRAY%clean median 0.10 HR | corruption feed n>=5}
+ItemDisplay[UNI ID amd STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Increased Atta 0.50 HR (n=40) | Chance of Crushing B 0.37 HR (n=14) | Dmg%, Chance of Dead 0.25 HR (n=20)%CL%%GRAY%clean median 0.10 HR}
+ItemDisplay[UNI !ID uit]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Stormshield - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.75 HR (n=106) | Numsockets 0.25 HR (n=986)%CL%%GRAY%clean median 0.10 HR | corruption feed n>=5}
+ItemDisplay[UNI ID uit STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.75 HR (n=106) | Numsockets 0.25 HR (n=986)%CL%%GRAY%clean median 0.10 HR}
+ItemDisplay[UNI !ID 7wc]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Stormspire - corrupt with a WSS%CL%%GOLD%measured: Numsockets 0.60 HR (n=642) | Dmg%, Chance of Dead 0.50 HR (n=14) | Chance of Crushing B 0.40 HR (n=16)%CL%%GRAY%clean median 0.25 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7wc STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Numsockets 0.60 HR (n=642) | Dmg%, Chance of Dead 0.50 HR (n=14) | Chance of Crushing B 0.40 HR (n=16)%CL%%GRAY%clean median 0.25 HR}
+ItemDisplay[UNI !ID zlb]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%String of Ears - corrupt with a WSS%CL%%GOLD%measured: Physical Damage Take 1.00 HR (n=105) | to Maximum Cold Resi 1.00 HR (n=184) | Increased Attack Spe 0.75 HR (n=176)%CL%%GRAY%clean median 0.25 HR | corruption feed n>=5}
+ItemDisplay[UNI ID zlb STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Physical Damage Take 1.00 HR (n=105) | to Maximum Cold Resi 1.00 HR (n=184) | Increased Attack Spe 0.75 HR (n=176)%CL%%GRAY%clean median 0.25 HR}
+ItemDisplay[UNI !ID 9gd]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Swordguard - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Increased Atta 0.50 HR (n=6)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 9gd STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Increased Atta 0.50 HR (n=6)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID ob6]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Tempest - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.80 HR (n=12)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID ob6 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.80 HR (n=12)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID 9gm]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%The Gavel Of Pain - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Chance of Dead 0.25 HR (n=13) | Dmg%, Increased Atta 0.25 HR (n=8)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 9gm STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Chance of Dead 0.25 HR (n=13) | Dmg%, Increased Atta 0.25 HR (n=8)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID gsd]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%The Patriarch - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Chance of Dead 1.00 HR (n=7) | Numsockets 0.50 HR (n=234) | Dmg%, Increased Atta 0.37 HR (n=8)%CL%%GRAY%clean median 0.15 HR | corruption feed n>=5}
+ItemDisplay[UNI ID gsd STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Chance of Dead 1.00 HR (n=7) | Numsockets 0.50 HR (n=234) | Dmg%, Increased Atta 0.37 HR (n=8)%CL%%GRAY%clean median 0.15 HR}
+ItemDisplay[UNI !ID 7s8]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%The Reapers Toll - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Chance of Dead 0.25 HR (n=51) | Dmg%, Increased Atta 0.25 HR (n=64) | Dmg%, Maxdamage Perc 0.25 HR (n=40)%CL%%GRAY%clean median 0.10 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7s8 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Chance of Dead 0.25 HR (n=51) | Dmg%, Increased Atta 0.25 HR (n=64) | Dmg%, Maxdamage Perc 0.25 HR (n=40)%CL%%GRAY%clean median 0.10 HR}
+ItemDisplay[UNI !ID xui]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%The Spirit Shroud - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.50 HR (n=18)%CL%%GRAY%clean median 0.01 HR | corruption feed n>=5}
+ItemDisplay[UNI ID xui STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.50 HR (n=18)%CL%%GRAY%clean median 0.01 HR}
+ItemDisplay[UNI !ID 9gs]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%The Vile Husk - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Increased Atta 0.62 HR (n=6) | Chance of Crushing B 0.25 HR (n=6) | Increased Attack Spe 0.25 HR (n=9)%CL%%GRAY%clean median 0.10 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 9gs STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Increased Atta 0.62 HR (n=6) | Chance of Crushing B 0.25 HR (n=6) | Increased Attack Spe 0.25 HR (n=9)%CL%%GRAY%clean median 0.10 HR}
+ItemDisplay[UNI !ID amf]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Thunderstroke - corrupt with a WSS%CL%%GOLD%measured: Chance of Crushing B 1.50 HR (n=85) | Increased Attack Spe 0.87 HR (n=108) | Dmg%, Increased Atta 0.50 HR (n=46)%CL%%GRAY%clean median 0.08 HR | corruption feed n>=5}
+ItemDisplay[UNI ID amf STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Chance of Crushing B 1.50 HR (n=85) | Increased Attack Spe 0.87 HR (n=108) | Dmg%, Increased Atta 0.50 HR (n=46)%CL%%GRAY%clean median 0.08 HR}
+ItemDisplay[UNI !ID ama]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Titans Revenge - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Increased Atta 0.62 HR (n=16) | Dmg%, Maxdamage Perc 0.50 HR (n=7) | Chance of Crushing B 0.25 HR (n=9)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID ama STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Increased Atta 0.62 HR (n=16) | Dmg%, Maxdamage Perc 0.50 HR (n=7) | Chance of Crushing B 0.25 HR (n=9)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID 7pa]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Tomb Reaver - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Increased Atta 8.00 HR (n=44) | Chance of Crushing B 1.00 HR (n=38) | Dmg%, Chance of Dead 0.50 HR (n=31)%CL%%GRAY%clean median 0.10 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7pa STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Increased Atta 8.00 HR (n=44) | Chance of Crushing B 1.00 HR (n=38) | Dmg%, Chance of Dead 0.50 HR (n=31)%CL%%GRAY%clean median 0.10 HR}
+ItemDisplay[UNI !ID xld]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Toothrow - corrupt with a WSS%CL%%GOLD%measured: Numsockets 0.50 HR (n=745)%CL%%GRAY%clean median 0.10 HR | corruption feed n>=5}
+ItemDisplay[UNI ID xld STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Numsockets 0.50 HR (n=745)%CL%%GRAY%clean median 0.10 HR}
+ItemDisplay[UNI !ID am5]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%True Silver - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.37 HR (n=6) | to Enemy Lightning R 0.25 HR (n=5)%CL%%GRAY%clean median 0.03 HR | corruption feed n>=5}
+ItemDisplay[UNI ID am5 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.37 HR (n=6) | to Enemy Lightning R 0.25 HR (n=5)%CL%%GRAY%clean median 0.03 HR}
+ItemDisplay[UNI !ID urg]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Twilights Reflection - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.00 HR (n=42) | Faster Cast Rate 0.25 HR (n=39) | Numsockets 0.25 HR (n=343)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID urg STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.00 HR (n=42) | Faster Cast Rate 0.25 HR (n=39) | Numsockets 0.25 HR (n=343)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID drf]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Ursa's Nightmare - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.87 HR (n=10) | Lightning Resist, to 0.50 HR (n=7) | Physical Damage Take 0.25 HR (n=10)%CL%%GRAY%clean median 0.03 HR | corruption feed n>=5}
+ItemDisplay[UNI ID drf STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.87 HR (n=10) | Lightning Resist, to 0.50 HR (n=7) | Physical Damage Take 0.25 HR (n=10)%CL%%GRAY%clean median 0.03 HR}
+ItemDisplay[UNI !ID xlg]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Venom Grip - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Maxdamage Perc 0.25 HR (n=51) | Chance of Deadly Str 0.25 HR (n=40) | Increased Attack Spe 0.25 HR (n=56)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID xlg STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Maxdamage Perc 0.25 HR (n=51) | Chance of Deadly Str 0.25 HR (n=40) | Increased Attack Spe 0.25 HR (n=56)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID 7br]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Viperfork - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Increased Atta 0.32 HR (n=6) | Dmg%, Maxdamage Perc 0.25 HR (n=7)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7br STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Increased Atta 0.32 HR (n=6) | Dmg%, Maxdamage Perc 0.25 HR (n=7)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID 7bk]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Warshrike - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Maxdamage Perc 1.50 HR (n=29) | Dmg%, Increased Atta 1.00 HR (n=18) | Increased Attack Spe 1.00 HR (n=16)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7bk STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Maxdamage Perc 1.50 HR (n=29) | Dmg%, Increased Atta 1.00 HR (n=18) | Increased Attack Spe 1.00 HR (n=16)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID xvb]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Waterwalk - corrupt with a WSS%CL%%GOLD%measured: Fire Resist, to Maxi 2.50 HR (n=166) | to Maximum Poison Re 1.00 HR (n=79) | Lightning Resist, to 0.75 HR (n=98)%CL%%GRAY%clean median 0.10 HR | corruption feed n>=5}
+ItemDisplay[UNI ID xvb STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Fire Resist, to Maxi 2.50 HR (n=166) | to Maximum Poison Re 1.00 HR (n=79) | Lightning Resist, to 0.75 HR (n=98)%CL%%GRAY%clean median 0.10 HR}
+ItemDisplay[UNI !ID 6sw]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Widowmaker - corrupt with a WSS%CL%%GOLD%measured: to Enemy Poison Resi 0.50 HR (n=6) | to All Skills 0.37 HR (n=20) | Increased Attack Spe 0.25 HR (n=11)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 6sw STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to Enemy Poison Resi 0.50 HR (n=6) | to All Skills 0.37 HR (n=20) | Increased Attack Spe 0.25 HR (n=11)%CL%%GRAY%clean median 0.05 HR}
+ItemDisplay[UNI !ID ba7]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Wildspeaker - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.00 HR (n=15) | Cannot Be Frozen 0.40 HR (n=5) | Numsockets 0.25 HR (n=65)%CL%%GRAY%clean median 0.04 HR | corruption feed n>=5}
+ItemDisplay[UNI ID ba7 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.00 HR (n=15) | Cannot Be Frozen 0.40 HR (n=5) | Numsockets 0.25 HR (n=65)%CL%%GRAY%clean median 0.04 HR}
+ItemDisplay[UNI !ID 6lw]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Windforce - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Chance of Dead 4.50 HR (n=76) | Dmg%, Increased Atta 4.00 HR (n=95) | Dmg%, Maxdamage Perc 1.50 HR (n=69)%CL%%GRAY%clean median 0.50 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 6lw STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Chance of Dead 4.50 HR (n=76) | Dmg%, Increased Atta 4.00 HR (n=95) | Dmg%, Maxdamage Perc 1.50 HR (n=69)%CL%%GRAY%clean median 0.50 HR}
+ItemDisplay[UNI !ID 8s8]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Witchwild String - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Increased Atta 1.00 HR (n=20) | Dmg%, Ignore Target' 0.50 HR (n=11) | Chance of Crushing B 0.50 HR (n=13)%CL%%GRAY%clean median 0.10 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 8s8 STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Increased Atta 1.00 HR (n=20) | Dmg%, Ignore Target' 0.50 HR (n=11) | Chance of Crushing B 0.50 HR (n=13)%CL%%GRAY%clean median 0.10 HR}
+ItemDisplay[UNI !ID 7dg]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Wizardspike - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.25 HR (n=9) | Faster Cast Rate 0.25 HR (n=17)%CL%%GRAY%clean median 0.03 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7dg STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.25 HR (n=9) | Faster Cast Rate 0.25 HR (n=17)%CL%%GRAY%clean median 0.03 HR}
+ItemDisplay[UNI !ID bac]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Wolfhowl - corrupt with a WSS%CL%%GOLD%measured: to All Skills 0.62 HR (n=8)%CL%%GRAY%clean median 0.03 HR | corruption feed n>=5}
+ItemDisplay[UNI ID bac STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 0.62 HR (n=8)%CL%%GRAY%clean median 0.03 HR}
+ItemDisplay[UNI !ID 7gl]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Wraith Flight - corrupt with a WSS%CL%%GOLD%measured: Dmg%, Increased Atta 0.50 HR (n=21) | Dmg%, Maxdamage Perc 0.50 HR (n=15) | Dmg%, Chance of Dead 0.25 HR (n=21)%CL%%GRAY%clean median 0.04 HR | corruption feed n>=5}
+ItemDisplay[UNI ID 7gl STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%Dmg%, Increased Atta 0.50 HR (n=21) | Dmg%, Maxdamage Perc 0.50 HR (n=15) | Dmg%, Chance of Dead 0.25 HR (n=21)%CL%%GRAY%clean median 0.04 HR}
+ItemDisplay[UNI !ID ung]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Wraithskin - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.00 HR (n=110) | Faster Cast Rate 0.75 HR (n=53) | Numsockets 0.50 HR (n=1042)%CL%%GRAY%clean median 0.15 HR | corruption feed n>=5}
+ItemDisplay[UNI ID ung STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.00 HR (n=110) | Faster Cast Rate 0.75 HR (n=53) | Numsockets 0.50 HR (n=1042)%CL%%GRAY%clean median 0.15 HR}
+ItemDisplay[UNI !ID ame]: %GG_SLAM_FX%{%NAME%%CL%%RED%SLAM CANDIDATE (unid)%CL%%TAN%Zerae's Resolve - corrupt with a WSS%CL%%GOLD%measured: to All Skills 1.50 HR (n=8) | Dmg%, Chance of Dead 0.30 HR (n=12) | Increased Attack Spe 0.25 HR (n=5)%CL%%GRAY%clean median 0.05 HR | corruption feed n>=5}
+ItemDisplay[UNI ID ame STAT360=0]: %GG_TIER3_FX%%GG_SLAM_GRAB% %NAME%{%NAME%%CL%%RED%SLAM WITH WSS - corruption feed (n>=5)%CL%%GOLD%to All Skills 1.50 HR (n=8) | Dmg%, Chance of Dead 0.30 HR (n=12) | Increased Attack Spe 0.25 HR (n=5)%CL%%GRAY%clean median 0.05 HR}
+// ==== END GG SLAM TABLE ====

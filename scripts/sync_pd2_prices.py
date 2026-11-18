@@ -36,6 +36,7 @@ Verified against the live API on 2026-11-17:
 import json
 import re
 import sys
+import time
 import shutil
 import urllib.request
 from datetime import datetime, timezone
@@ -293,6 +294,85 @@ def build_live_price_block(text, name_prices):
 def fmt2(v):
     return ('%.2f' % v).rstrip('0').rstrip('.')
 
+# ---- slam table (v0.3.0): generated ground-star + hover rules from the
+# corruption feed - the server's full corrupted-listing distribution. The
+# feed is the verified source: a hand scrape of the top-40 most expensive
+# asks overstated Shako +skills 10x (30 HR vs the feed's n=343 median 3.0).
+SLAM_MARK_BEGIN = '// ==== GG SLAM TABLE (auto-generated from the pd2trader corruption feed - do not hand-edit) ===='
+SLAM_MARK_END = '// ==== END GG SLAM TABLE ===='
+SLAM_MIN_N = 5                # min corrupted listings per corruption row (verified sample)
+SLAM_MIN_HR = 0.25            # user rule: show slams worth 0.25+ HR after a decent slam
+
+def fetch_slam_feed(pd2_code, sleep_s=0.3):
+    """Full corruption feed rows (name, median, n) for one baseCode,
+    gated to sample >= SLAM_MIN_N."""
+    d = None
+    for attempt in range(3):
+        try:
+            _, d = http_json(CORRUPTION_URL % pd2_code)
+            break
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt < 2:
+                time.sleep(3 * (attempt + 1))
+                continue
+            return []
+        except Exception:                                    # noqa: BLE001
+            return []
+    out = []
+    for entry in d.get('corruptionPrices') or []:
+        med = entry.get('medianPrice')
+        n = entry.get('sampleCount')
+        nm = (entry.get('corruptionName') or '').strip()
+        if not isinstance(med, (int, float)) or not isinstance(n, int):
+            continue
+        if med < SLAM_MIN_HR or n < SLAM_MIN_N:
+            continue
+        out.append((nm, float(med), n))
+    out.sort(key=lambda r: -r[1])
+    time.sleep(sleep_s)
+    return out
+
+def build_slam_block(text, name_prices, budget=400):
+    """Ground red-star + hover slam rules for EVERY tracked unique/set whose
+    corruption feed shows a post-slam median >= SLAM_MIN_HR. Rules are
+    generated between markers so every sync refreshes the whole table."""
+    unid = parse_unid_names(text)
+    rules = []
+    calls = 0
+    for code, (name, kind) in sorted(unid.items(), key=lambda x: x[1]):
+        if calls >= budget:
+            break
+        p = name_prices.get(name_key(name))
+        if not p or not p.get('pd2_code'):
+            continue
+        calls += 1
+        feed = fetch_slam_feed(p['pd2_code'])
+        if not feed:
+            continue
+        qg = 'UNI' if kind == 'UNI' else 'SET'
+        vals = ' | '.join('%s %.2f HR (n=%d)' % (nm[:20], med, n) for nm, med, n in feed[:3])
+        clean = p.get('clean_med')
+        clean_s = ('%.2f' % clean) if isinstance(clean, (int, float)) else '?'
+        rules.append(
+            'ItemDisplay[%s !ID %s]: %%GG_SLAM_FX%%{%%NAME%%%%CL%%%%RED%%SLAM CANDIDATE (unid)%%CL%%%%TAN%%%s'
+            ' - corrupt with a WSS%%CL%%%%GOLD%%measured: %s%%CL%%%%GRAY%%clean median %s HR | corruption feed n>=%d}'
+            % (qg, code, name[:26], vals, clean_s, SLAM_MIN_N))
+        rules.append(
+            'ItemDisplay[%s ID %s STAT360=0]: %%GG_TIER3_FX%%%%GG_SLAM_GRAB%% %%NAME%%{%%NAME%%%%CL%%%%RED%%SLAM WITH WSS - corruption feed (n>=%d)%%CL%%%%GOLD%%%s%%CL%%%%GRAY%%clean median %s HR}'
+            % (qg, code, SLAM_MIN_N, vals, clean_s))
+    block = '\n'.join([SLAM_MARK_BEGIN] + rules + [SLAM_MARK_END])
+    return block, len(rules) // 2, calls
+
+def apply_slam_block(text, block):
+    """Insert or replace the generated slam-table block in the filter text."""
+    if SLAM_MARK_BEGIN in text and SLAM_MARK_END in text:
+        pat = re.escape(SLAM_MARK_BEGIN) + r'.*?' + re.escape(SLAM_MARK_END)
+        return re.sub(pat, lambda m: block, text, count=1, flags=re.S)
+    if SLAM_MARK_END in text:
+        return text.replace(SLAM_MARK_END, block + '\n' + SLAM_MARK_END, 1)
+    return text + '\n' + block + '\n'
+
+
 def apply_live_price_block(text, name_prices):
     """Insert or replace the generated live-price block in the GG filter text."""
     block, n_rules, skipped = build_live_price_block(text, name_prices)
@@ -482,6 +562,7 @@ def main():
             name_prices[name_key(nm)] = {'name': nm, 'price': float(price), 'samples': samples,
                                          'pd2_code': it.get('baseCode'),
                                          'type_code': it.get('typeCode'),
+                                         'clean_med': (it.get('clean') or {}).get('medianPrice'),
                                          'corruptions': []}
 
     # ---- corruption price feed: per-STAT360 outcomes for uniques worth checking
@@ -539,6 +620,11 @@ def main():
         if 'GG_DEEP_DELVE' in path.name:
             new_text, n_live = apply_live_price_block(new_text, name_prices)
             print('  live-price rules: %d generated' % n_live)
+            # slam table: ground red-star + hover warnings for every unique/set
+            # with a verified post-slam median >= 0.25 HR (corruption feed)
+            slam_block, n_slam, calls = build_slam_block(new_text, name_prices)
+            new_text = apply_slam_block(new_text, slam_block)
+            print('  slam rules: %d generated (%d corruption-feed calls)' % (n_slam, calls))
         if new_text == text:
             print('%s: already up to date' % path.name)
             continue

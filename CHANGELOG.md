@@ -4,6 +4,36 @@ All notable changes to the GG DEEP DELVE Project Diablo 2 filter project.
 Base: HiimFilter (Hyper) Season 14 build 247. Every original rule is preserved;
 all changes are additive or value/threshold updates.
 
+## v0.3.0 — 2026-11-18
+
+### The slam system: complete corruption warning layer
+- **Generated slam table (145 unique/set bases, refreshed by every sync):**
+  the sync now calls pd2trader's corruption-price feed for every tracked
+  unique/set (245 feed calls) and generates ground red-star + hover rules for
+  every base whose verified post-slam median is >= 0.25 HR with sample >= 5.
+  The feed is the server's full corrupted-listing distribution — the verified
+  source; a hand scrape of the top-40 asks had overstated Shako +skills 10x
+  (30 HR vs the feed's n=343 median 3.0 HR) and was removed.
+- **Ground red stars**: unidentified drops of slam-target bases show red
+  stars + the slam sound before pickup (the game knows the base pre-ID).
+  Covers 145 bases, not a hand-picked list.
+- **Hover warnings**: identified uncorrupted items show `[SLAM]` + the
+  measured outcomes with sample counts (e.g. Harlequin Crest: to All Skills
+  3.0 HR n=343, CBF 0.25 n=231, MF 0.2 n=236).
+- **Ground [SLAM] tags** (any strictness incl. Lvl 6): magic ILVL 84+
+  weapons/amulets/rings/circlets (corruption slam targets), 4os shields
+  (Spirit/Phoenix/Monarch), 3os claws (Chaos), 0-socket eth elite weapons
+  (Larzuk slam), rare helms/chests ILVL 84+.
+- **Watcher slam popups**: a newly-seen uncorrupted GG unique/craft pops the
+  in-game toast + chime — "SLAM IT".
+- **Chest tier retune** (measured): generic socketed elite chests
+  Tier2→Tier1 with est 0.15-0.5 (Shadow Plate eth comps median 0.17); top-half
+  DEF>750 keeps Tier 2/3.
+- **Ogre Maul (7m7) bases always visible** (S14 Madness 4os base), eth and
+  non-eth, all strictnesses.
+- Sound: `Alias[GG_SLAM_FX]` (placeholder SOUNDID-4721) — audition candidates
+  in game with `.playsound <id>` and set the winner.
+
 ## v0.2.1 — 2026-11-18
 
 ### Stacked listings post at UNIT price (user convention)

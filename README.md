@@ -191,7 +191,13 @@ sounds were stripped from them (zero false positives).
 ### 3.3 The slam system (v0.3.0) — corrupt with a Worldstone Shard
 
 Corruption is random, so the system tells you **what the measured market pays for the
-money outcomes** — then it's your roll:
+money outcomes** — then it's your roll. The slam table is **generated from
+pd2trader's corruption-price feed** (the server's full corrupted-listing
+distribution, sample-gated at n>=5) for **every tracked unique and set** —
+145 bases in the current build, refreshed by every sync run. It replaced a
+hand-written list whose values were scraped from the most expensive listings
+and overstated the market 10× (Shako +skills: 30 HR claimed vs the feed's
+n=343 median of 3.0 HR).
 
 - **In game, on the ground — the RED STAR (v0.3.0):** unidentified drops of the
   slam-target unique bases (Shako, Griffon's, Crown of Ages, Stormshield,
