@@ -290,6 +290,34 @@ def char_item(it, character, tab):
     }
 
 
+def char_gear_value(env):
+    """Equipped-gear value (worn, NOT sellable) from pd2trader's builds API -
+    the server prices each equipped item INCLUDING its socketed jewels/runes
+    (measured 2026-11-18: Kira's Guardian 4.19 HR with 3x Rainbow Facet
+    (Lightning 3/4) inside, priceBasis=corruption; CTA 1.38 basis=item).
+    Returns a summary string for the F6 toast, or '' when the builds service
+    has no data (only ladder characters above its crawl floor are tracked)."""
+    try:
+        _, acct = http_json(PD2_API_BASE + '/game/account/' + env.get('PD2_ACCOUNT_NAME', ''))
+        chars = [c.get('name') for c in (acct.get('details') or [])
+                 if c.get('hardcore') is False and c.get('ladder') is True and c.get('name')]
+    except Exception:                                       # noqa: BLE001
+        return ''
+    parts, total = [], 0.0
+    for ch in chars:
+        try:
+            _, d = http_json('https://pd2trader.com/api/builds/characters/' + ch)
+        except Exception:                                   # noqa: BLE001
+            continue
+        v = d.get('gearValueHr')
+        if isinstance(v, (int, float)) and v > 0:
+            parts.append('%s %.2f' % (ch, v))
+            total += v
+    if not parts:
+        return ''
+    return '%.2f HR total (%s)' % (total, '; '.join(parts))
+
+
 def fetch_stash_items(token, account, base=None, env=None):
     """GET /game/stash/<account> - verified working (275 items, currency tab)."""
     url = (base or PD2_API_BASE).rstrip('/') + '/game/stash/' + account
@@ -421,22 +449,10 @@ def fetch_stash_items(token, account, base=None, env=None):
                     items.append(char_item(it, ch, '%s (Personal)' % ch))
         except Exception as e:                              # noqa: BLE001
             print('  personal-stash socket read failed: %r' % e)
-        # inventory/cube: scanned and PRICED always (dashboard visibility);
-        # auto-listed only when GG_ALLOW_INVENTORY=1 (no_list gate)
-        allow_inv = str((env or {}).get('GG_ALLOW_INVENTORY', '0')).strip().lower() \
-            in ('1', 'true', 'yes')
-        for ch in chars:
-            try:
-                _, d = http_json(PD2_API_BASE + '/game/character/' + ch)
-                for it in (d.get('items') or []):
-                    if (it.get('location') or {}).get('storage') not in \
-                            ('Inventory', 'Horadric Cube'):
-                        continue
-                    row = char_item(it, ch, '%s (Inventory)' % ch)
-                    row['no_list'] = not allow_inv
-                    items.append(row)
-            except Exception as e:                          # noqa: BLE001
-                print('  char inventory read failed for %s: %r' % (ch, e))
+        # inventory/cube: REMOVED per user decision 2026-11-18 - nothing from
+        # the character inventory is priced or listed. The reachable stash
+        # sources are the shared stash (all pages) and character personal
+        # stashes (above). Equipped gear and mercenaries are never scanned.
     return items
 
 # ------------------------------------------------------------------ pricing (VERIFIED public endpoints)
@@ -1137,7 +1153,7 @@ def instant_sell(env):
 
 
 # ------------------------------------------------------------------ hotkeys
-def start_hotkeys(on_f9, on_f10, on_f8, on_f7=None):
+def start_hotkeys(on_f9, on_f10, on_f8, on_f7=None, on_f6=None):
     """Global hotkeys via `keyboard` (pip install keyboard). Runs as a daemon
     thread; degrades to polling-only when unavailable (or without admin rights
     while PD2 runs elevated)."""
@@ -1146,7 +1162,7 @@ def start_hotkeys(on_f9, on_f10, on_f8, on_f7=None):
     except Exception as e:                                  # noqa: BLE001
         print('! hotkeys unavailable (pip install keyboard; admin if PD2 is elevated): %r' % e)
         return None
-    for hot, fn in [('f7', on_f7), ('f8', on_f8), ('f9', on_f9), ('f10', on_f10)]:
+    for hot, fn in [('f6', on_f6), ('f7', on_f7), ('f8', on_f8), ('f9', on_f9), ('f10', on_f10)]:
         if fn is None:
             continue
         try:
@@ -1270,7 +1286,6 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
               # Synthetic currency-walk rows (raw-less) posted phantom listings
               # with unnamed cards for mats the user could not even trade from
               # the stash tab - measured 2026-11-18, 4 phantoms delisted.
-              and not r['item'].get('no_list')            # inventory: priced, listed only with GG_ALLOW_INVENTORY=1
               and not str(r['item'].get('code', '')).startswith('r')]
     ranked.sort(key=lambda r: -r['ask'])
     target = ranked[:target_n]
@@ -1455,9 +1470,40 @@ def run_watch(env):
         print('[F8] link + reload...')
         link_running_game()
 
-    start_hotkeys(force_sync, hot_price_check, hot_link, on_f7=instant_sell)
-    print('watch mode: polling every %ds while %s is running; F7 instant-sell, '
-          'F8 link+reload, F9 sync+reload, F10 clipboard check.'
+    def hot_deep_scan():
+        """[F6] scan ALL items + price them NOW (no market posts): shared stash
+        (every page) + character personal stashes, deep-delve pricing, standings,
+        dashboard refresh + toast summary."""
+        print('[F6] full scan + price...')
+        if not stash_enabled:
+            toast('GG DEEP DELVE', ['no token - run --import-token'])
+            return
+        try:
+            state = scan_once(token, env)
+            rows = discover(state, env)
+            total = sum(i.get('hr') or 0 for i in state['items'])
+            n_gg = sum(1 for r in rows if r['standing'] == 'GG')
+            n_chk = sum(1 for r in rows if r['standing'] == 'CHECK')
+            # equipped-gear value (worn, not sellable): pd2trader's builds API
+            # prices each character's equipped items INCLUDING socketed jewels
+            gear = char_gear_value(env)
+            lines = ['%d items | %.2f HR' % (len(state['items']), total),
+                     '%d GG / %d CHECK' % (n_gg, n_chk)]
+            if gear:
+                lines.append('equipped gear: %s' % gear)
+            print('  scanned: %d items, %.2f HR, %d GG / %d CHECK%s' % (
+                len(state['items']), total, n_gg, n_chk,
+                (' | equipped: %s' % gear) if gear else ''))
+            toast('GG DEEP DELVE - Scanned', lines)
+            chime()
+        except TokenExpired as e:
+            print('  TOKEN EXPIRED — run --import-token (%s)' % e)
+        except Exception as e:                              # noqa: BLE001
+            print('  deep scan failed: %r' % e)
+
+    start_hotkeys(force_sync, hot_price_check, hot_link, on_f7=instant_sell, on_f6=hot_deep_scan)
+    print('watch mode: polling every %ds while %s is running; F6 scan+price, '
+          'F7 instant-sell, F8 link+reload, F9 sync+reload, F10 clipboard check.'
           % (POLL_SECONDS, ' / '.join(GAME_PROCESSES)))
     first_cycle = True
     while True:

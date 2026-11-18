@@ -6,26 +6,31 @@ all changes are additive or value/threshold updates.
 
 ## v0.1.4 — 2026-11-18
 
-### Value from ALL tabs (user rule)
+### Value from ALL tabs (user rule, then narrowed by user decision)
 - **Character personal stashes are now reachable** — verified live via the
   hook's own socket flow (`wss://api.projectdiablo2.com`, websocket transport
   REQUIRED: polling 400s 'Session ID unknown' behind the load balancer;
   python-socketio needs a TUPLE for flat multi-args). Personal-stash items
   merge into the scan as listable (the hook lists from them; PD2 reports them
   as 'Shared Stash' page 0 in listings).
-- **Character inventory/cube** (public REST `game/character/<name>`): scanned
-  and priced every cycle, shown in the dashboard as `<Char> (Inventory)`.
-  NOT auto-listed by default — gated behind `GG_ALLOW_INVENTORY=1` because
-  the market transfer path for inventory items is unverified, and the first
-  GG item there is the user's active Annihilus (1.17 HR).
-- **Equipped gear ('Unknown' storage) and mercenaries: never scanned** — worn
-  and not tradeable.
+- **Character inventory/cube: REMOVED entirely per user decision** ("don't
+  price anything from the inventory") — not scanned, not priced. Equipped
+  gear ('Unknown' storage), mercenaries: never scanned (worn, not tradeable).
+- **F6 hotkey: scan + price everything NOW** (shared stash all pages +
+  personal stashes, deep-delve pricing, standings, dashboard refresh, toast)
+  without touching the market.
+- **Equipped-gear value with socketed jewels priced in** — pd2trader's builds
+  API prices each equipped item INCLUDING its socketed jewels/runes
+  (measured: Kira's Guardian 4.19 HR with 3x Rainbow Facet (Lightning 3/4)
+  inside, priceBasis=corruption; Arkaine's 2.58, Jade Talon 2.37, CTA 1.38;
+  ChiTea's total equipped gear 14.1 HR server-computed). Shown in the F6
+  toast as a non-sellable information line.
 - **The PD2 currency dict is NOT a holdings source**: its counts are a stale
   game-save snapshot (claimed 15x Sigil of Madawc / 5x Festering Essence of
   Destruction AFTER those stacks had sold; user confirmed not owning them).
   It remains priced for the dashboard, but ownership/listing comes only from
-  real item objects (stash pages + character sources).
-- Verified cycle: 329 items (+23 character-held), 39.69 HR, 3 GG.
+  real item objects (stash pages + character personal stashes).
+- Verified cycle: 329 items, 39.69 HR, 3 GG.
 
 ## v0.1.3 — 2026-11-18
 
