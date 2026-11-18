@@ -477,6 +477,45 @@ def valuate_lines(lines, hours=168):
                 line.get('unresolvedReason'))
     return out, d
 
+COMP_CACHE = {}                                        # name -> (ts, median, sample)
+COMP_TTL = 3600                                        # re-query market comps hourly
+
+
+def market_comp_ask(name):
+    """Live market comps by exact item name: what OTHER sellers ask right now
+    (live listings only, priced > 0, newest first). Returns
+    (median, p25, p75, sample) or None below 3 comps.
+    This refutes linear stack pricing for bulk unique stacks - measured
+    2026-11-18: Basilisk's Quill 131x valuate-priced 18.34 HR while the market
+    asks 0.10-0.70 HR for 100-345x stacks and a 511x stack SOLD at 0.15 HR
+    (three transient 18.34 asks were other bots with the same linear bug)."""
+    if not name:
+        return None
+    cached = COMP_CACHE.get(name)
+    if cached and time.time() - cached[0] < COMP_TTL:
+        return cached[1]
+    q = urllib.parse.urlencode({
+        'type': 'item', '$limit': '40',
+        'item.name[$regex]': '^%s$' % re.escape(name),
+        'accepted_offer_id': 'null',
+        'is_ladder': 'true', 'is_hardcore': 'false',
+        'hr_price[$gt]': '0', '$sort[bumped_at]': '-1'})
+    try:
+        _, d = http_json(PD2_API_BASE + '/market/listing?' + q)
+    except Exception:                                   # noqa: BLE001
+        return None
+    prices = sorted(l['hr_price'] for l in (d.get('data') or [])
+                    if isinstance(l.get('hr_price'), (int, float)) and l['hr_price'] > 0)
+    if len(prices) < 3:
+        return None
+    med = prices[len(prices) // 2]
+    p25 = prices[max(0, len(prices) // 4)]
+    p75 = prices[min(len(prices) - 1, 3 * len(prices) // 4)]
+    result = (med, p25, p75, len(prices))
+    COMP_CACHE[name] = (time.time(), result)
+    return result
+
+
 def networth_sync(token, account, is_ladder=True, is_hardcore=False):
     """The hook's own deep-delve endpoint (verified live 2026-11-17, HTTP 200):
     POST /api/networth/sync {account, isLadder, isHardcore, trigger, persist}
@@ -974,6 +1013,16 @@ def scan_once(token, env, tab_filter=None, full=False):
             it2['hr'] = hr if isinstance(hr, (int, float)) else 0
         else:
             it2['hr'], it2['needs_probe'] = 0, True           # deferred past the probe cap
+        # bulk unique stacks: linear per-unit x qty overprices them - the live
+        # market decides (measured 2026-11-18: quill 131x linear-math 18.34 HR
+        # vs market asks 0.10-0.70 for whole stacks, a 511x stack SOLD 0.15)
+        if (it2.get('hr') or 0) > 0.5 and (it.get('qty') or 1) > 1 \
+                and it2.get('quality') == 'Unique':
+            comp = market_comp_ask(it2.get('name'))
+            if comp:
+                med, p25, p75, n = comp
+                it2['hr'] = med
+                it2['confidence'] = 'market-comps(%d)' % n
         priced_items.append(it2)
     # cache
     for it in priced_items:
