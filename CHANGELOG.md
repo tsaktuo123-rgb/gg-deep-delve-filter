@@ -4,6 +4,36 @@ All notable changes to the GG DEEP DELVE Project Diablo 2 filter project.
 Base: HiimFilter (Hyper) Season 14 build 247. Every original rule is preserved;
 all changes are additive or value/threshold updates.
 
+## v0.1.2 — 2026-11-18
+
+### Watcher (`scripts/stash_pricer.py`)
+- **Watch-mode log tee**: the hidden watcher now mirrors every print (cycles,
+  standings, posts, delists, hotkeys) into `watcher.log`, line-buffered,
+  fresh per run. Monitor live with `scripts/Monitor_Watcher.cmd`.
+- **Currency-walk fixes (measured)**: boss-subtree mats get proper path-aware
+  names (leaf codes truncated: `destruction` was displaying for BOTH the
+  Festering Essence of Destruction AND the map-craft orb; `Madawc` for the
+  Sigil). Craft infusions named `X Craft Infusion` (matches the valuation
+  API's resolution). Uber sigils + Black Soulstone no longer walked — they
+  already exist in `items[]` with hashes; walking them DOUBLE-COUNTED the
+  same physical stack ('Madawc' 0.9 + 'Sigil of Madawc' 0.66) and could
+  list it twice.
+- **Empty-market refill**: the own-listings guard treated a successful HTTP
+  response with zero listings as a failure and refused to post forever.
+  Measured: market hit 0 (all 45 listings gone), rotation deadlocked.
+  Success+empty is now a valid answer; only a failed lookup twice blocks
+  posting. Refill verified: 45 posted in one cycle.
+- Festering Essence of Destruction (x5) now correctly priced GG at 1.3 HR
+  (its old truncated name priced it at 0.52 and hid the jackpot tier).
+
+### Launchers
+- `scripts/Run_Watcher_Hidden.vbs` — scheduled task now launches the watcher
+  with zero visible window (task action verified:
+  `wscript.exe "...\Run_Watcher_Hidden.vbs"`).
+- `scripts/Monitor_Watcher.cmd` — double-click for a live feed window
+  (tails `watcher.log`).
+
+
 ## v0.1.1 — 2026-11-18
 
 ### Pricer (`scripts/stash_pricer.py`)

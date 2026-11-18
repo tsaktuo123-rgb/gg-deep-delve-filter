@@ -53,6 +53,33 @@ ENV_FILE = REPO / '.env'
 DASH_HTML = REPO / 'stash_prices.html'
 DASH_MD = REPO / 'stash_prices.md'
 CACHE = REPO / 'stash_cache.json'
+WATCH_LOG = REPO / 'watcher.log'
+
+
+class WatchLogTee:
+    """Watch-mode only: mirrors stdout into watcher.log so the hidden instance
+    can be monitored live (Monitor_Watcher.cmd tails this file). Every print
+    in the watch loop - cycles, standings, posts, delists, hotkeys - lands in
+    the log, line-buffered."""
+    def __init__(self, path):
+        self._out = sys.stdout
+        self._log = open(path, 'a', encoding='utf-8', buffering=1)
+
+    def write(self, s):
+        try:
+            self._out.write(s)
+            self._out.flush()
+        except Exception:                                   # noqa: BLE001
+            pass                                            # console may be hidden/gone
+        self._log.write(s)
+        return len(s)
+
+    def flush(self):
+        try:
+            self._out.flush()
+        except Exception:                                   # noqa: BLE001
+            pass
+        self._log.flush()
 
 VALUATE_URL = 'https://pd2trader.com/api/valuate'
 APPRAISAL_BATCH_URL = 'https://pd2trader.com/api/rares/appraisal/batch'
@@ -237,12 +264,43 @@ def fetch_stash_items(token, account, base=None):
 
     flat = []
     walk_currency(cur, [], flat)
+    # path-aware names for the boss subtree: bare leaf codes truncate and
+    # collide ('destruction' is both the map-craft orb AND the Festering
+    # Essence of Destruction; 'jawbone' is Trang-Oul's Jawbone)
+    BOSS_NAMES = {
+        'mini_uber': {'terror': 'Burning Essence of Terror',
+                      'hatred': 'Charged Essence of Hatred',
+                      'destruction': 'Festering Essence of Destruction'},
+        'dclone': {'pure_demonic_essence': 'Pure Demonic Essence',
+                   'prime_evil_soul': 'Prime Evil Soul'},
+        'rathma': {'jawbone': "Trang-Oul's Jawbone",
+                   'splinter': 'Splinter of the Void',
+                   'ashes': 'Hellfire Ashes'},
+        'lucion': {'insignia': 'Demonic Insignia',
+                   'talisman': 'Talisman of Transgression',
+                   'flesh': 'Flesh of Malic'},
+    }
+    # these physical stacks already exist in items[] with hashes and exact
+    # names; walking them here too DOUBLE-COUNTS them (measured 2026-11-18:
+    # 'Madawc' 0.9 HR walk row AND 'Sigil of Madawc' 0.66 items[] row for one
+    # stack, both eligible for the rotation -> duplicate market listings)
+    WALK_SKIP_BOSS = {'uber_ancients'}                      # all three sigils in items[]
+    WALK_SKIP_LEAF = {('dclone', 'black_soulstone')}        # in items[] with hash
     for path, n in flat:
         if not path or path[0] in SKIP_CUR:
             continue
         code = path[-1]
+        if path[0] == 'boss' and len(path) >= 3:
+            branch = path[1]
+            if branch in WALK_SKIP_BOSS or (branch, code) in WALK_SKIP_LEAF:
+                continue
+            disp = BOSS_NAMES.get(branch, {}).get(code,
+                                                  code.replace('_', ' ').title())
+        elif path[0] == 'craft':
+            disp = code.capitalize() + ' Craft Infusion'
+        else:
+            disp = DISP.get(code, RUNE_NAMES.get(code, code.replace('_', ' ').title()))
         tab = path[0].capitalize()
-        disp = DISP.get(code, RUNE_NAMES.get(code, code.replace('_', ' ').title()))
         items.append({'character': 'Currency Tab', 'tab': tab, 'pos': code,
                       'code': code, 'name': disp, 'base_name': disp, 'quality': 'Currency',
                       'qty': n, 'id': 'cur-' + '-'.join(path) + '-%d' % n})
@@ -1050,20 +1108,23 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
     user_id = cache.get('user_id')
     own = {}
     if user_id:
+        # HTTP success with an EMPTY result is a valid answer (market genuinely
+        # empty - e.g. every listing sold): posting is safe, there is nothing
+        # to duplicate. Only a FAILED lookup twice must block posting.
+        lookup_ok = False
         for attempt in range(2):
             try:
                 for l in get_own_listings(token, user_id):
                     iid = str(((l.get('item') or {}).get('id')))
                     if iid and iid != 'None':
                         own[iid] = l.get('_id')
-                if own:
-                    break
-                time.sleep(3)                           # empty once: retry before trusting it
+                lookup_ok = True
+                break
             except Exception as e:                      # noqa: BLE001
                 print('  own-listings fetch failed: %r' % e)
                 time.sleep(3)
-        if not own and attempt:
-            print('  ! own-listings lookup returned empty twice - refusing to post (duplicate risk)')
+        if not lookup_ok:
+            print('  ! own-listings lookup failed twice - refusing to post (duplicate risk)')
             return [], []
 
     # the rotation: top N by live ask, listable (raw stash object or synthetic)
@@ -1324,6 +1385,9 @@ def main():
     if args.detect:
         return 0 if link_running_game() else 1
     if args.watch:
+        WATCH_LOG.write_text('', encoding='utf-8')          # fresh log per watcher run
+        sys.stdout = WatchLogTee(WATCH_LOG)
+        print('[%s] watcher starting (log: watcher.log)' % datetime.now(timezone.utc).strftime('%H:%M:%S'))
         return run_watch(env)
     if args.once:
         return run_once(env, tab_filter=args.tab, full=args.full, discover_mode=args.discover,
