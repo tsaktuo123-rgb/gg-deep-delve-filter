@@ -290,32 +290,39 @@ def char_item(it, character, tab):
     }
 
 
-def char_gear_value(env):
-    """Equipped-gear value (worn, NOT sellable) from pd2trader's builds API -
-    the server prices each equipped item INCLUDING its socketed jewels/runes
-    (measured 2026-11-18: Kira's Guardian 4.19 HR with 3x Rainbow Facet
-    (Lightning 3/4) inside, priceBasis=corruption; CTA 1.38 basis=item).
-    Returns a summary string for the F6 toast, or '' when the builds service
-    has no data (only ladder characters above its crawl floor are tracked)."""
+def scan_equipped_gear(env):
+    """Worn-gear valuation — STANDALONE by design: priced for information,
+    NEVER listed (worn items cannot be traded and must not consume rotation
+    slots). Source: pd2trader's builds API, which prices each equipped item
+    INCLUDING its socketed jewels/runes (measured 2026-11-18: Kira's Guardian
+    4.19 HR with 3x Rainbow Facet (Lightning 3/4) inside,
+    priceBasis=corruption). Only characters the builds service tracks
+    (ladder, above its crawl floor) return data. Toggle: GG_SCAN_EQUIPPED / F5.
+    """
     try:
         _, acct = http_json(PD2_API_BASE + '/game/account/' + env.get('PD2_ACCOUNT_NAME', ''))
         chars = [c.get('name') for c in (acct.get('details') or [])
                  if c.get('hardcore') is False and c.get('ladder') is True and c.get('name')]
     except Exception:                                       # noqa: BLE001
-        return ''
-    parts, total = [], 0.0
+        return []
+    out = []
     for ch in chars:
         try:
             _, d = http_json('https://pd2trader.com/api/builds/characters/' + ch)
         except Exception:                                   # noqa: BLE001
             continue
-        v = d.get('gearValueHr')
-        if isinstance(v, (int, float)) and v > 0:
-            parts.append('%s %.2f' % (ch, v))
-            total += v
-    if not parts:
-        return ''
-    return '%.2f HR total (%s)' % (total, '; '.join(parts))
+        for e in d.get('equipped') or []:
+            v = e.get('priceHr')
+            if not isinstance(v, (int, float)) or v <= 0:
+                continue
+            out.append({'character': ch,
+                        'name': e.get('name') or '',
+                        'quality': e.get('quality') or '',
+                        'hr': v,
+                        'basis': e.get('priceBasis') or '',
+                        'socketed': ', '.join(s.get('name') for s in (e.get('socketed') or []))})
+    out.sort(key=lambda r: -r['hr'])
+    return out
 
 
 def fetch_stash_items(token, account, base=None, env=None):
@@ -489,9 +496,13 @@ def networth_sync(token, account, is_ladder=True, is_hardcore=False):
 def networth_join(sync):
     """Join keys verified 2026-11-17 against the live stash (297/297 hashes,
     tab 'Shared N' <-> location.stash_page, position {column,row} exact):
-      -> ({hash: valuation line}, {(page, col, row): rare appraisal})"""
-    lines, rares_pos = {}, {}
-    for ln in (sync.get('valuation') or {}).get('lines') or []:
+      -> ({hash: valuation line}, {(page, col, row): rare appraisal}, all lines)
+    The third element keeps the NO-HASH lines (currency-panel mats) - they are
+    the server-vouched source for panel-backed listings."""
+    lines, rares_pos, all_lines = {}, {}, []
+    raw_lines = (sync.get('valuation') or {}).get('lines') or []
+    all_lines = raw_lines
+    for ln in raw_lines:
         for h in ln.get('itemHashes') or []:
             lines[str(h)] = ln
     for r in sync.get('rares') or []:
@@ -499,7 +510,51 @@ def networth_join(sync):
         pos = r.get('position') or {}
         if m and pos.get('column') is not None and pos.get('row') is not None:
             rares_pos[(int(m.group(1)), pos['column'], pos['row'])] = r
-    return lines, rares_pos
+    return lines, rares_pos, all_lines
+
+
+BANNED_PANEL = ('worldstone shard', 'tainted worldstone', 'wss')
+
+
+def networth_panel_rows(val_lines, stash_items):
+    """Currency-PANEL rows from the server's own valuation (no-hash lines).
+    The server vouches the account owns these right now (the hook's net worth
+    shows the same lines), which makes them the listable source for misc/uber
+    mats that live in the currency panel instead of stash grids - AND the
+    phantom guard: mats the server does NOT vouch for (e.g. the Festering
+    Essence whose dict count stayed stale after the stack was gone) get no
+    line and therefore never list. Grid stacks of the same name are
+    subtracted so nothing is double-counted. Runes/gems/wss never list
+    (user's standing never-list rules)."""
+    grid = {}
+    for it in stash_items:
+        if it.get('raw'):
+            nm = (it.get('name') or '').strip().lower()
+            grid[nm] = grid.get(nm, 0) + (it.get('qty') or 1)
+    out = []
+    for ln in val_lines:
+        if not isinstance(ln, dict) or ln.get('itemHashes'):
+            continue                                    # grid items: hash-joined elsewhere
+        cat = ln.get('category') or ''
+        nm = (ln.get('name') or '').strip()
+        if cat in ('runes', 'gems'):
+            continue
+        if any(b in nm.lower() for b in BANNED_PANEL):
+            continue
+        unit = ln.get('unitPrice')
+        if not isinstance(unit, (int, float)) or unit <= 0:
+            continue
+        qty = (ln.get('qty') or 0) - grid.get(nm.lower(), 0)
+        if qty <= 0:
+            continue                                    # fully covered by grid stacks
+        out.append({'character': 'Currency Panel', 'tab': cat.capitalize(),
+                    'pos': nm, 'code': ln.get('key'), 'name': nm,
+                    'base_name': nm, 'quality': 'Currency',
+                    'qty': qty, 'id': 'panel-' + str(ln.get('key')),
+                    'hr': round(unit * qty, 4),
+                    'confidence': ln.get('confidence'),
+                    'panel': True})
+    return out
 
 
 def appraise_rares(rares, hours=None):
@@ -707,6 +762,30 @@ def write_dashboard(state):
                 it.get('ilvl', ''), round(it.get('hr') or 0, 2), note))
         rows_html.append('</table>')
         md_rows.append('')
+    # equipped-gear standalone section: priced (jewels rolled in), never listed
+    eq = state.get('equipped') or []
+    equipped_html, equipped_md = '', ''
+    if eq:
+        eq_total = sum(r['hr'] for r in eq)
+        equipped_html = ('<h2>Equipped gear — worn, NOT for sale <small>(%.2f HR, socketed jewels '
+                         'priced in &middot; F5 toggle)</small></h2>'
+                         '<table border=1 cellpadding=4 style="border-collapse:collapse;'
+                         'font-family:Consolas,monospace;font-size:13px">'
+                         '<tr><th>Character</th><th>Item</th><th>Quality</th><th>HR</th>'
+                         '<th>Socketed</th></tr>' % round(eq_total, 2))
+        equipped_md = ('\n## Equipped gear — worn, NOT for sale — %.2f HR\n\n'
+                       '| Character | Item | Quality | HR | Socketed |\n|---|---|---|---|---|\n'
+                       % round(eq_total, 2))
+        for r in eq:
+            equipped_html += ('<tr><td>%s</td><td>%s</td><td>%s</td><td><b>%s</b></td>'
+                              '<td>%s</td></tr>'
+                              % (esc(r['character']), esc(r['name']), esc(r['quality']),
+                                 esc(round(r['hr'], 2)), esc(r['socketed'])))
+            equipped_md += ('| %s | %s | %s | %s | %s |\n'
+                            % (r['character'], r['name'], r['quality'],
+                               round(r['hr'], 2), r['socketed']))
+        equipped_html += '</table>'
+        equipped_md += '\n'
     html_doc = ('<!doctype html><meta charset="utf-8"><title>GG DEEP DELVE - Stash Prices</title>'
                 '<meta http-equiv="refresh" content="60">'
                 '<style>body{background:#0b0b10;color:#eee;font-family:Segoe UI,Consolas;margin:24px}'
@@ -714,7 +793,7 @@ def write_dashboard(state):
                 + banner +
                 '<h1>GG DEEP DELVE - Live Stash Pricing <small>updated %s &middot; total %s HR &middot; '
                 'auto-refresh 60s</small></h1>' % (now, round(total, 2))
-                + ''.join(rows_html) +
+                + ''.join(rows_html) + equipped_html +
                 '<p><small>values: pd2trader.com ladder SC (public API); stash data: your PD2 account '
                 'via the pd2trader-app token; rares appraised with exact rolls.</small></p>')
     DASH_HTML.write_text(html_doc, encoding='utf-8')
@@ -723,7 +802,7 @@ def write_dashboard(state):
           % (now, round(total, 2)))
     if state.get('token_expired'):
         md += '\n**Token Expired — Refresh via --import-token**\n'
-    DASH_MD.write_text(md + '\n'.join(md_rows), encoding='utf-8')
+    DASH_MD.write_text(md + '\n'.join(md_rows) + equipped_md, encoding='utf-8')
 
 # ------------------------------------------------------------------ scan + cache
 def fingerprint(it):
@@ -760,11 +839,22 @@ def scan_once(token, env, tab_filter=None, full=False):
     # ---- deep delve: the hook's server-side networth/sync (one call prices the
     # whole stash and appraises every rare; join keys verified above). Legacy
     # valuate/probe paths stay as fallback for anything the server leaves unpriced.
-    nw_lines, nw_rares = {}, {}
+    nw_lines, nw_rares, all_val_lines = {}, {}, []
     try:
-        nw_lines, nw_rares = networth_join(networth_sync(token, env.get('PD2_ACCOUNT_NAME', '')))
+        nw_lines, nw_rares, all_val_lines = networth_join(
+            networth_sync(token, env.get('PD2_ACCOUNT_NAME', '')))
     except Exception as e:                                  # noqa: BLE001
         print('  networth sync failed (%r) - falling back to legacy pricing' % e)
+    # currency-panel rows: server-vouched mats (misc/uber/keys) that live in
+    # the currency panel; dict-walk rows the panel already covers are dropped
+    panel = networth_panel_rows(all_val_lines, fresh) if all_val_lines else []
+    if panel:
+        panel_names = {r['name'].strip().lower() for r in panel}
+        fresh = [it for it in fresh
+                 if not (str(it.get('id', '')).startswith('cur-')
+                         and (it.get('name') or '').strip().lower() in panel_names)]
+        fresh.extend(panel)
+        print('  panel rows: %d (server-vouched currency-panel mats)' % len(panel))
     # ---- pricing
     val_lines = []
     rare_items = []
@@ -781,6 +871,8 @@ def scan_once(token, env, tab_filter=None, full=False):
         if q in ('Rare', 'Craft'):
             if not nw_covered:
                 rare_items.append(it)                   # server appraised; skip synthesized batch
+        elif it.get('panel'):
+            continue                                    # server-priced at creation; no legacy call
         elif tab == 'Maps':
             # standard tier maps are NOT tracked by pd2trader's valuation -
             # their codes fuzzy-resolve to runes. Excluded from listing.
@@ -829,13 +921,22 @@ def scan_once(token, env, tab_filter=None, full=False):
     for it in fresh:
         it2 = dict(it)
         q = it['quality']
-        nm_val = it.get('code') if q == 'Currency' else (it.get('name') or it.get('base_name'))
+        # currency-walk (dict) rows price by DISPLAY NAME: the raw leaf code
+        # fuzzy-matches ('valuate("destruction")' priced a ghost 1.3 HR GG on
+        # an essence the user does not own - measured 2026-11-18). Names the
+        # server tracks resolve; ghosts resolve to 0, which is honest.
+        nm_val = (it.get('name') or it.get('base_name')) if \
+            str(it.get('id', '')).startswith('cur-') else \
+            (it.get('code') if q == 'Currency' else (it.get('name') or it.get('base_name')))
         raw = it.get('raw') or {}
         loc = raw.get('location') or {}
         pos = raw.get('position') or {}
         rare_key = (loc.get('stash_page'), pos.get('column'), pos.get('row'))
         nw_line = nw_lines.get(str(raw.get('hash') or ''))
-        if q in ('Rare', 'Craft'):
+        if it.get('panel'):
+            it2['hr'] = it.get('hr') or 0               # priced from the server's own panel line
+            it2['confidence'] = it.get('confidence')
+        elif q in ('Rare', 'Craft'):
             # server appraisal first (the hook's verdict/rank/band); synthesized
             # batch stays as fallback when the item wasn't in the sync response
             sr = nw_rares.get(rare_key)
@@ -885,6 +986,11 @@ def scan_once(token, env, tab_filter=None, full=False):
     cache['raw_items'] = {it['id']: it.get('raw') for it in items if it.get('raw')}
     CACHE.write_text(json.dumps(cache, indent=1), encoding='utf-8')
     state = {'items': priced_items, 'token_expired': False, 'last_scan': cache['last_scan']}
+    # equipped-gear valuation: STANDALONE (toggle GG_SCAN_EQUIPPED / F5) - worn
+    # items are priced for information only and never listed or ranked, so the
+    # 45 rotation slots are never spent on them (user rule 2026-11-18)
+    state['equipped'] = scan_equipped_gear(env) if \
+        str(env.get('GG_SCAN_EQUIPPED', '0')).strip().lower() in ('1', 'true', 'yes') else []
     write_dashboard(state)
     return state
 
@@ -1153,7 +1259,7 @@ def instant_sell(env):
 
 
 # ------------------------------------------------------------------ hotkeys
-def start_hotkeys(on_f9, on_f10, on_f8, on_f7=None, on_f6=None):
+def start_hotkeys(on_f9, on_f10, on_f8, on_f7=None, on_f6=None, on_f5=None):
     """Global hotkeys via `keyboard` (pip install keyboard). Runs as a daemon
     thread; degrades to polling-only when unavailable (or without admin rights
     while PD2 runs elevated)."""
@@ -1162,7 +1268,8 @@ def start_hotkeys(on_f9, on_f10, on_f8, on_f7=None, on_f6=None):
     except Exception as e:                                  # noqa: BLE001
         print('! hotkeys unavailable (pip install keyboard; admin if PD2 is elevated): %r' % e)
         return None
-    for hot, fn in [('f6', on_f6), ('f7', on_f7), ('f8', on_f8), ('f9', on_f9), ('f10', on_f10)]:
+    for hot, fn in [('f5', on_f5), ('f6', on_f6), ('f7', on_f7), ('f8', on_f8),
+                    ('f9', on_f9), ('f10', on_f10)]:
         if fn is None:
             continue
         try:
@@ -1281,11 +1388,11 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
     # slots" rule: VENDOR items are junk by definition)
     ranked = [r for r in rows if r['ask'] > 0 and r['item'].get('id')
               and r['standing'] in ('GG', 'CHECK')
-              and r['item'].get('raw')                    # ONLY real item objects
-              # (shared stash + character personal stashes) may be listed.
-              # Synthetic currency-walk rows (raw-less) posted phantom listings
-              # with unnamed cards for mats the user could not even trade from
-              # the stash tab - measured 2026-11-18, 4 phantoms delisted.
+              and (r['item'].get('raw') or r['item'].get('panel'))
+              # ONLY real item objects (shared stash + character personal
+              # stashes) OR server-vouched currency-panel rows may be listed.
+              # Synthetic currency-walk rows (raw-less, unvouched) posted
+              # phantom listings - measured 2026-11-18, 4 phantoms delisted.
               and not str(r['item'].get('code', '')).startswith('r')]
     ranked.sort(key=lambda r: -r['ask'])
     target = ranked[:target_n]
@@ -1473,7 +1580,8 @@ def run_watch(env):
     def hot_deep_scan():
         """[F6] scan ALL items + price them NOW (no market posts): shared stash
         (every page) + character personal stashes, deep-delve pricing, standings,
-        dashboard refresh + toast summary."""
+        dashboard refresh + toast summary. Equipped-gear value shown only when
+        its toggle is on (F5) - standalone, never listed."""
         print('[F6] full scan + price...')
         if not stash_enabled:
             toast('GG DEEP DELVE', ['no token - run --import-token'])
@@ -1484,16 +1592,14 @@ def run_watch(env):
             total = sum(i.get('hr') or 0 for i in state['items'])
             n_gg = sum(1 for r in rows if r['standing'] == 'GG')
             n_chk = sum(1 for r in rows if r['standing'] == 'CHECK')
-            # equipped-gear value (worn, not sellable): pd2trader's builds API
-            # prices each character's equipped items INCLUDING socketed jewels
-            gear = char_gear_value(env)
             lines = ['%d items | %.2f HR' % (len(state['items']), total),
                      '%d GG / %d CHECK' % (n_gg, n_chk)]
-            if gear:
-                lines.append('equipped gear: %s' % gear)
-            print('  scanned: %d items, %.2f HR, %d GG / %d CHECK%s' % (
-                len(state['items']), total, n_gg, n_chk,
-                (' | equipped: %s' % gear) if gear else ''))
+            eq = state.get('equipped') or []
+            if eq:
+                lines.append('equipped (not for sale): %.2f HR | top: %s %.2f HR'
+                             % (sum(r['hr'] for r in eq), eq[0]['name'], eq[0]['hr']))
+            print('  scanned: %d items, %.2f HR, %d GG / %d CHECK' % (
+                len(state['items']), total, n_gg, n_chk))
             toast('GG DEEP DELVE - Scanned', lines)
             chime()
         except TokenExpired as e:
@@ -1501,9 +1607,23 @@ def run_watch(env):
         except Exception as e:                              # noqa: BLE001
             print('  deep scan failed: %r' % e)
 
-    start_hotkeys(force_sync, hot_price_check, hot_link, on_f7=instant_sell, on_f6=hot_deep_scan)
-    print('watch mode: polling every %ds while %s is running; F6 scan+price, '
-          'F7 instant-sell, F8 link+reload, F9 sync+reload, F10 clipboard check.'
+    def toggle_equipped():
+        """[F5] equipped-gear scan on/off (persists in .env as GG_SCAN_EQUIPPED).
+        Standalone: worn gear is priced into the dashboard, never listed, and
+        never spends a rotation slot."""
+        cur = str(env.get('GG_SCAN_EQUIPPED', '0')).strip().lower() in ('1', 'true', 'yes')
+        new = '0' if cur else '1'
+        env['GG_SCAN_EQUIPPED'] = new
+        write_env_key('GG_SCAN_EQUIPPED', new)
+        print('[F5] equipped-gear scan: %s' % ('ON' if new == '1' else 'OFF'))
+        toast('GG DEEP DELVE', ['equipped-gear scan: %s' % ('ON — priced in dashboard (standalone, never listed)'
+                                                           if new == '1' else 'OFF')])
+        chime()
+
+    start_hotkeys(force_sync, hot_price_check, hot_link, on_f7=instant_sell,
+                  on_f6=hot_deep_scan, on_f5=toggle_equipped)
+    print('watch mode: polling every %ds while %s is running; F5 equipped toggle, '
+          'F6 scan+price, F7 instant-sell, F8 link+reload, F9 sync+reload, F10 clipboard check.'
           % (POLL_SECONDS, ' / '.join(GAME_PROCESSES)))
     first_cycle = True
     while True:
