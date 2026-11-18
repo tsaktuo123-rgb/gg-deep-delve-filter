@@ -1137,13 +1137,11 @@ def run_watch(env):
                 total = sum(i.get('hr') or 0 for i in state['items'])
                 rows = discover(state, env)
                 update_filter_status(env, state, rows)
+                run_autolist(env, rows, max_posts=40, max_actions=45)
                 print('  synced: %d items, %.2f HR' % (len(state['items']), total))
                 chime()
                 toast('GG DEEP DELVE - Synced', ['%d items, %.1f HR' % (len(state['items']), total),
-                                                 'reloading filter in game...'])
-                g = detect_game_dir()
-                if g:
-                    send_reload(g.parent)
+                                                 'Numpad 0 in game to reload filter'])
             except TokenExpired as e:
                 print('  TOKEN EXPIRED — run --import-token (%s)' % e)
             except Exception as e:                          # noqa: BLE001
@@ -1175,14 +1173,30 @@ def run_watch(env):
         link_running_game()
 
     start_hotkeys(force_sync, hot_price_check, hot_link, on_f7=instant_sell)
-    print('watch mode: polling every %ds while %s is running; F8 link+reload, '
-          'F9 sync+reload, F10 clipboard check.' % (POLL_SECONDS, ' / '.join(GAME_PROCESSES)))
+    print('watch mode: polling every %ds while %s is running; F7 instant-sell, '
+          'F8 link+reload, F9 sync+reload, F10 clipboard check.'
+          % (POLL_SECONDS, ' / '.join(GAME_PROCESSES)))
+    first_cycle = True
     while True:
         if paused or not stash_enabled or not game_running():
             time.sleep(IDLE_CHECK_SECONDS)
             continue
         try:
             state = scan_once(token, env)
+            # every cycle: full pipeline — price, discover, standings, autolist
+            rows = discover(state, env)
+            update_filter_status(env, state, rows)
+            total = sum(i.get('hr') or 0 for i in state['items'])
+            n_gg = sum(1 for r in rows if r['standing'] == 'GG')
+            n_check = sum(1 for r in rows if r['standing'] == 'CHECK')
+            print('cycle: %d items | %.2f HR | %d GG / %d CHECK' % (
+                len(state['items']), total, n_gg, n_check))
+            if first_cycle:
+                # the first cycle after watcher start: fill the market
+                run_autolist(env, rows, max_posts=40, max_actions=45)
+                first_cycle = False
+            else:
+                run_autolist(env, rows, max_posts=5, max_actions=5)
         except TokenExpired as e:
             paused = True
             state['token_expired'] = True
