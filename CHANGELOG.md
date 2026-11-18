@@ -42,6 +42,15 @@ all changes are additive or value/threshold updates.
   Sigil of Madawc ×17 (1.02 total, gate 1+2 PASS → queue); items whose type
   shows no recent sale (Flying Axe, Korlic, Puzzlepiece — deleted/delisted,
   never sold) correctly fail gate 1 and stay off the market.
+- **Stack policy (user decision): VERIFIED stacks that pass gate 1 list
+  directly at their fixed sold-unit price — no extra rules.** Weapon stacks
+  (throwing weapons like the eth superior Flying Axe ×89, quivers) and panel
+  stacks (currency-panel mats) are labeled honestly — the Flying Axe is a
+  THROWING WEAPON stack (`7ta`, category weapon, stackable by design), not a
+  panel mat, and stays off the market until its type records a sale, per the
+  verified-only architecture. Gear, jewels, and charms keep the full gate
+  treatment (tiered sold volume + price floor + volume exception) because
+  their price ranges and sellability vary per stat.
 
 ## v0.3.0 — 2026-11-18
 
