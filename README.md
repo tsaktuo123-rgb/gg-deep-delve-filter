@@ -227,6 +227,22 @@ n=343 median of 3.0 HR).
 
 ### 3.4 The automation loop
 
+**Pricing (v0.4.2, user-tuned):** every item's value = the **pd2trader engine's own
+valuation** (verified, hash-joined — nothing overrides it); the **posting price** =
+the median ask of OTHER sellers × **`GG_FAIR_DISCOUNT` (0.87)** — just under the
+Fair line, our own listings excluded from the baseline (measured: the minimum
+ask overshoots into bait/mistake listings — a Shaftstop ask at 0.03 vs a 0.43
+median). The gates judge the item value; the discount only shapes the listing.
+
+**Slam filter: REMOVED by owner decision** (the generated table + hover warnings —
+not useful while mapping). The ground-visibility tags remain.
+
+**Craft-base targeting (measured, 7-day solds):** charms/jewels ILVL 84+ (magic
+Grand Charms = 144 solds/week, jewels 104), and the top-selling bases tagged
+wherever they drop: Monarch (3.0 HR), Chain Boots (1.75), Plate Mail/Diadem/
+Glaive-eth/Ghost Armor (1.5), plus **eth Ogre Axe (`7o7`) and War Pike (`7p7`)**
+— both codes verified from the sold corpus.
+
 - **`sync_pd2_prices.py`** pulls live prices (ladder SC, 7-day average), rewrites the
   value aliases in `GG_DEEP_DELVE.filter`, refreshes the rare-guide ladder brackets and
   unique roll estimates, and updates `CURRENCY_TIMESTAMP` + the cube header date.
@@ -397,3 +413,62 @@ watcher still polls normally; F9/F10 are conveniences, not requirements.
   uniques distinguishable by base code or stat signature (Shako, Griffon's, Mara's,
   Verdungo's, War Traveler, Gore Rider, Stormshield, Gheed's, facets). Ring uniques
   fall back to the generic unique modifier rules and the watcher's live pricing.
+
+---
+
+## 9. Pricing Engine (v0.4.1) — Audit-Verified
+
+The watcher's pricing engine (`scripts/stash_pricer.py`) is a **sold-evidence-only**
+system. It does not price from asks. Every listed item's price traces to recent
+market sales, measured and verified from the PD2 market API.
+
+### 9.1 The Two Gates (spec from v0.2.0, implemented in v0.4.0)
+
+| Gate | Rule | Config |
+|------|------|--------|
+| **1. Sellable (tiered volume)** | Item lists only if its type has recent sold demand: exact-name (≥1) → base+quality (≥`GG_SOLD_MIN_VOL`, default 3) → category (broad fallback, never a blocker) | `GG_SOLD_MIN_VOL` |
+| **2. Price floor + volume exception** | Ask ≥ 0.25 HR (`GG_LIST_FLOOR`) — EXCEPT items under the floor still list when their sold volume ranks in the top `GG_VOL_TOP_PCT` (default 75%) of the gate-1 pool | `GG_LIST_FLOOR`, `GG_VOL_TOP_PCT` |
+
+> **Volume-first rotation**: the listing queue is ranked by sold volume of the item's type (highest first), price only breaks ties.
+
+### 9.2 Pricing = Sold Evidence (never asks)
+
+- When ≥2 **priced** recent solds exist for the item's type, the ask = **median of those sold prices**.
+- O.B.O. solds (no recorded price) prove demand but not amount — they count for volume, not for median.
+- Stackables: priced from the sold **unit** median × our stack size; the **total stack value** is what the gates judge; the listing posts the unit price with quantity in the note.
+- The engine **never undercuts anything that sold recently** — the ratchet (`min(sold_median, current_price)`) was removed in v0.4.1 (D2).
+
+### 9.3 Corpus Hygiene (D1 fix)
+
+The sold corpus (`sold_market.json`) now stores each sale's `seller_id`. The owner's own sales (45+ items in the window) are **excluded from pricing evidence** at fetch time. They remain visible for sale-event tracking but do not pollute medians.
+
+### 9.4 Price Provenance (D6)
+
+Every dashboard row (`stash_prices.html` / `stash_prices.md`) shows a **Price Source (audit)** column:
+```
+name: 12 sold (8 priced), median 1.45 HR, last 2026-11-17
+type: 47 sold (31 priced), median 0.82 HR, last 2026-11-18
+```
+This lets you audit any price at a glance — trace it to the exact sold records.
+
+### 9.5 Key Environment Variables (`.env`)
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `GG_SOLD_MIN_VOL` | `3` | Min type-solds for gate 1 (name-sold = 1) |
+| `GG_LIST_FLOOR` | `0.25` | Min price in HR to list (floor) |
+| `GG_VOL_TOP_PCT` | `75` | Top % volume exception for gate 2 (lower = stricter) |
+| `GG_SALE_WINDOW_DAYS` | `7` | How far back to pull sold evidence |
+| `GG_SOLD_PRICE_MIN` | `2` | Min priced solds required to anchor to sold median |
+| `GG_ROTATION_TARGET` | `45` | Target active listings (market cap is 50) |
+| `GG_STAND_HIGH` | `1.0` | GG standing threshold (HR) |
+| `GG_STAND_CHECK` | `0.15` | CHECK standing threshold (HR) |
+| `GG_ASK_PERCENTILE` | `25` | Live-ask percentile when no sold evidence (1–99) |
+
+### 9.6 Forcing a Clean Corpus Rebuild
+
+```bat
+del sold_market.json
+python scripts/stash_pricer.py --once --full
+```
+This fetches a fresh sold corpus with `seller_id` on every row and excludes own sales. The console prints the count of excluded own-sales.
