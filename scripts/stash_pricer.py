@@ -1709,6 +1709,8 @@ def run_watch(env):
           'F6 scan+price, F7 instant-sell, F8 link+reload, F9 sync+reload, F10 clipboard check.'
           % (POLL_SECONDS, ' / '.join(GAME_PROCESSES)))
     first_cycle = True
+    first_cycle = True
+    slam_toasted = set()        # item ids already popup-announced this watcher run
     while True:
         if paused or not stash_enabled or not game_running():
             time.sleep(IDLE_CHECK_SECONDS)
@@ -1723,6 +1725,26 @@ def run_watch(env):
             n_check = sum(1 for r in rows if r['standing'] == 'CHECK')
             print('cycle: %d items | %.2f HR | %d GG / %d CHECK' % (
                 len(state['items']), total, n_gg, n_check))
+            # slam popups (user request 2026-11-18): a NEWLY-seen uncorrupted
+            # GG unique/craft pops the in-game toast + chime - "GO SLAM IT"
+            slam_new = []
+            for r in rows:
+                it = r['item']
+                raw = it.get('raw') or {}
+                if r['standing'] != 'GG' or raw.get('corrupted') is not False:
+                    continue
+                if it.get('quality') not in ('Unique', 'Craft'):
+                    continue
+                iid = str(it.get('id'))
+                if iid in slam_toasted:
+                    continue
+                slam_toasted.add(iid)
+                slam_new.append('SLAM IT: %s - %.2f HR' % (it.get('name'), r['ask']))
+            if slam_new and not first_cycle:
+                toast('GG DEEP DELVE - SLAM CHECK', slam_new[:4] +
+                      ['corrupt with a WSS - hover the item in game for outcomes'])
+                chime()
+                print('slam popup: %d new uncorrupted GG item(s)' % len(slam_new))
             if first_cycle:
                 # the first cycle after watcher start: fill the market
                 run_autolist(env, rows, max_posts=40, max_actions=45)
