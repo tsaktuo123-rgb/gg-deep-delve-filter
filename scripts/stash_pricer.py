@@ -1504,8 +1504,13 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
                    'socketed_count': 0, 'item_level': 1, 'id': iid,
                    'location': {'storage': 'Shared Stash', 'stash_page': 0}}
         note = strict_note(it, obo=obo)
+        # stacked items post at the UNIT price (that is what people search;
+        # buyers do the qty math at trade time) - the quantity is already in
+        # the note ('Nx o.b.o.'). Ranking still uses the stack total above.
+        qty = it.get('qty') or 1
+        post_price = round(r['ask'] / qty, 4) if qty > 1 else round(r['ask'], 2)
         try:
-            listing = post_listing(token, raw, account, round(r['ask'], 2), note)
+            listing = post_listing(token, raw, account, post_price, note)
             lid = (listing or {}).get('_id') or (listing or {}).get('id')
             if lid:
                 listings[iid] = {'listing_id': lid, 'status': 'posted',

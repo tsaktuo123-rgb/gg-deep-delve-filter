@@ -4,6 +4,17 @@ All notable changes to the GG DEEP DELVE Project Diablo 2 filter project.
 Base: HiimFilter (Hyper) Season 14 build 247. Every original rule is preserved;
 all changes are additive or value/threshold updates.
 
+## v0.2.1 — 2026-11-18
+
+### Stacked listings post at UNIT price (user convention)
+- Stacked items (qty > 1) post with `hr_price = ask / qty` — the per-unit
+  price people search by — while the quantity stays in the listing note
+  ('Nx o.b.o.'); buyers do the math at trade time. Ranking still uses the
+  stack total, so rotation priority is unchanged.
+- Verified live: Sigil of Madawc 0.06 (17x), Sigil of Korlic 0.09 (8x),
+  Larzuk's Puzzlepiece 0.10 (5x) — previously posted at stack totals
+  (0.96 / 0.72 / 0.50), delisted and reposted at unit.
+
 ## v0.2.0 — 2026-11-18
 
 ### Equipped gear: F5 toggle, standalone (user rule: never wastes a rotation slot)
