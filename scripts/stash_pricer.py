@@ -412,14 +412,14 @@ def update_filter_status(env, state, rows=None):
     new_alias = 'Alias[GG_ENGINE_STATUS]: ' + text
     targets = {gg}
     for path in targets:
-        t = path.read_text(encoding='utf-8')
+        t = path.read_text(encoding='cp1252')
         if 'Alias[GG_ENGINE_STATUS]' in t:
             t = re.sub(r'^Alias\[GG_ENGINE_STATUS\]:.*$', new_alias, t, count=1, flags=re.M)
         elif 'Alias[GG_MONEY_TAG]' in t:
             t = t.replace('Alias[GG_MONEY_TAG]', new_alias + '\nAlias[GG_MONEY_TAG]', 1)
         else:
             continue
-        path.write_text(t, encoding='utf-8', newline='\n')
+        path.write_text(t, encoding='cp1252', newline='\n')
     return True
 
 

@@ -511,7 +511,7 @@ def main():
             print('MISSING: %s' % path)
             ok = False
             continue
-        text = path.read_text(encoding='utf-8')
+        text = path.read_text(encoding='cp1252')
         # appraisal aliases (HR_*/UNI_* tooltips) are GG-DEEP-DELVE-only; other
         # filters just skip them. Core economy aliases must exist everywhere.
         appraisal = [k for k in lines if k.startswith('Alias[HR_') or k.startswith('Alias[UNI_')]
@@ -547,7 +547,7 @@ def main():
             continue
         bak = path.with_suffix(path.suffix + '.sync-bak')
         shutil.copyfile(path, bak)
-        path.write_text(new_text, encoding='utf-8', newline='\n')
+        path.write_text(new_text, encoding='cp1252', newline='\n')
         skipped_note = (' (%d appraisal aliases not present here, skipped)' % skipped) if skipped else ''
         print('%s: updated (%d alias lines)%s, previous copy -> %s' % (
             path.name, len(file_lines), skipped_note, bak.name))
