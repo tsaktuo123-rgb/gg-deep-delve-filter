@@ -3909,6 +3909,7 @@ ItemDisplay[!ID NMAG !RW CHEST ELT ETH DEF>750]: %GG_TIER2_FX% %NAME%{%NAME%%CL%
 ItemDisplay[!ID NMAG !RW CHEST ELT !ETH (SOCK=0 OR SOCK=3 OR SOCK=4)]: %GG_TIER1_FX% %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%TAN%Socket base: est < 0.5 HR%CL%%GRAY%S14: 3os armor = Finesse target}
 ItemDisplay[ID (MAG OR RARE OR CRAFT) !RW CHEST ELT ILVL>84]: %GG_TIER1_FX% %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%TAN%Slam target: +2 All Skills / 4 Sockets / PDR%CL%%GRAY%S14 meta: eth 4os = Fortitude, merc armor}
 ItemDisplay[!ID MAG !RW CHEST ELT ILVL>84]: %GG_TIER1_FX% %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%TAN%ALVL 87+: slam candidate (+2 skills / 4os / PDR)%CL%%GRAY%Keep for Season 14 corruption rolls}
+ItemDisplay[7m7 !RW !UNI !SHOP]: %NAME%{%NAME%%CL%%TAN%Ogre Maul - S14 Madness 4os base%CL%%GRAY%eth = top half | always visible (eth + non-eth)}
 
 ItemDisplay[!SHOP FILTLVL>1 NMAG !RW WEAPON !ETH]:%NOTIFY-DEAD%{%NAME%}
 ItemDisplay[!SHOP FILTLVL>2 NMAG !RW WEAPON]:%NOTIFY-DEAD%{%NAME%}
