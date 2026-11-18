@@ -4,6 +4,45 @@ All notable changes to the GG DEEP DELVE Project Diablo 2 filter project.
 Base: HiimFilter (Hyper) Season 14 build 247. Every original rule is preserved;
 all changes are additive or value/threshold updates.
 
+## v0.4.0 — 2026-11-18
+
+### Sold-market pricing overhaul (user design: gates + volume priority)
+- **The pricing truth moved from asks to SOLD listings** (measured: the market
+  exposes 1,458 sold records in the last 7 days; only 226 carry a recorded
+  price — o.b.o. solds prove demand but not the amount). The sold corpus is
+  fetched, cached to `sold_market.json` (30-min TTL) and refreshed per cycle.
+- **Gate 1 (sellable, tiered by sold volume — the most important gate):** an
+  item is listable only if its type shows real sold demand, measured in
+  tiers: exact-name solds (named uniques), base+quality solds (types), or the
+  item's CATEGORY sold volume as broad-demand fallback. Config:
+  `GG_SOLD_MIN_VOL` (default 3 type-solds, or 1 name-sold).
+- **Gate 2 (price):** the ask anchors to the median of recent PRICED solds of
+  the same type when >=2 exist (`sold-median(N sold, M priced)` confidence);
+  otherwise the live-ask percentile stands. This is what kills the
+  "High +100%" badges — pricing at clearing prices, not competing asks.
+- **Volume-first rotation:** the top-100 queue is ranked by the sold volume
+  of the item's most specific evidence tier, price only breaks ties.
+- **Verified live:** 169 of 240 items pass gate 1 (127 magic, 17 rare, 15
+  unique, 14 normal); small charms lead the queue at vol=25 with the
+  sold-median at 1.0 HR.
+- **Self-repricing kept**: live listings drifting >10% from the model are
+  delisted and reposted same-tick.
+- **Gate 2 refined (user rule)**: price floor **0.25 HR** — an item priced
+  under the floor still lists when its sold volume ranks in the **top 75%**
+  of the gate-1 pool (`GG_LIST_FLOOR`, `GG_VOL_TOP_PCT`). Measured: 140
+  listable (110 by price, 30 by volume exception), stash total repriced
+  14.24 → 60.12 HR.
+- **Rotation admits by the gates, not the label**: the GG/CHECK standing is
+  dashboard-only — a cheap-but-high-volume stack passes gate 2 by volume and
+  lists anyway.
+- **Stackables (audited, 8 stacks in shared tabs)**: the sold corpus carries
+  the sold listing's quantity, so stacked items price from the sold **unit**
+  median × our stack size — the TOTAL stack value is what the gates judge,
+  while the listing posts the unit price with 'Nx' in the note. Verified:
+  Sigil of Madawc ×17 (1.02 total, gate 1+2 PASS → queue); items whose type
+  shows no recent sale (Flying Axe, Korlic, Puzzlepiece — deleted/delisted,
+  never sold) correctly fail gate 1 and stay off the market.
+
 ## v0.3.0 — 2026-11-18
 
 ### The slam system: complete corruption warning layer
