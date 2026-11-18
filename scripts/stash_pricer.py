@@ -58,6 +58,7 @@ VALUATE_URL = 'https://pd2trader.com/api/valuate'
 APPRAISAL_BATCH_URL = 'https://pd2trader.com/api/rares/appraisal/batch'
 PRICE_CHECK_URL = 'https://pd2trader.com/api/price-check'
 APPRAISAL_URL = 'https://pd2trader.com/api/rares/appraisal'
+NETWORTH_SYNC_URL = 'https://pd2trader.com/api/networth/sync'
 
 PD2_API_BASE = 'https://api.projectdiablo2.com'
 PD2TRAADER_SETTINGS = Path(os.environ.get('APPDATA', '')) / 'com.pd2-trader.app' / 'settings.json'
@@ -261,6 +262,38 @@ def valuate_lines(lines, hours=168):
                 line.get('valueHr', line.get('priceHr')), line.get('confidence'),
                 line.get('unresolvedReason'))
     return out, d
+
+def networth_sync(token, account, is_ladder=True, is_hardcore=False):
+    """The hook's own deep-delve endpoint (verified live 2026-11-17, HTTP 200):
+    POST /api/networth/sync {account, isLadder, isHardcore, trigger, persist}
+    + Bearer token. The server fetches the stash from PD2 itself - clients never
+    upload contents - and returns (a) valuation.lines: every priced item keyed
+    by PD2 stash item hash (unitPrice/value/confidence/sampleCount) and
+    (b) rares: every rare in the stash appraised server-side with verdict
+    keep/check/vendor, predicted rank percentile within its slot, and a market
+    ask band (lowHr-highHr) with sample size. persist=False keeps it read-only.
+    """
+    body = {'account': account, 'isLadder': is_ladder, 'isHardcore': is_hardcore,
+            'trigger': 'manual', 'persist': False}
+    _, d = http_json(NETWORTH_SYNC_URL, token=token, body=body)
+    return d
+
+
+def networth_join(sync):
+    """Join keys verified 2026-11-17 against the live stash (297/297 hashes,
+    tab 'Shared N' <-> location.stash_page, position {column,row} exact):
+      -> ({hash: valuation line}, {(page, col, row): rare appraisal})"""
+    lines, rares_pos = {}, {}
+    for ln in (sync.get('valuation') or {}).get('lines') or []:
+        for h in ln.get('itemHashes') or []:
+            lines[str(h)] = ln
+    for r in sync.get('rares') or []:
+        m = re.search(r'(\d+)', r.get('tab') or '')
+        pos = r.get('position') or {}
+        if m and pos.get('column') is not None and pos.get('row') is not None:
+            rares_pos[(int(m.group(1)), pos['column'], pos['row'])] = r
+    return lines, rares_pos
+
 
 def appraise_rares(rares, hours=None):
     """Exact-roll rare/craft comps via public /api/rares/appraisal/batch.
@@ -517,6 +550,14 @@ def scan_once(token, env, tab_filter=None, full=False):
             fresh.append(dict(it, hr=prev.get('hr'), status='cached'))
             continue
         fresh.append(dict(it))
+    # ---- deep delve: the hook's server-side networth/sync (one call prices the
+    # whole stash and appraises every rare; join keys verified above). Legacy
+    # valuate/probe paths stay as fallback for anything the server leaves unpriced.
+    nw_lines, nw_rares = {}, {}
+    try:
+        nw_lines, nw_rares = networth_join(networth_sync(token, env.get('PD2_ACCOUNT_NAME', '')))
+    except Exception as e:                                  # noqa: BLE001
+        print('  networth sync failed (%r) - falling back to legacy pricing' % e)
     # ---- pricing
     val_lines = []
     rare_items = []
@@ -524,14 +565,23 @@ def scan_once(token, env, tab_filter=None, full=False):
     for it in fresh:
         q = it.get('quality')
         tab = it.get('tab') or ''
+        _raw = it.get('raw') or {}
+        _loc = _raw.get('location') or {}
+        _pos = _raw.get('position') or {}
+        nw_covered = (str(_raw.get('hash') or '') in nw_lines
+                      or (q in ('Rare', 'Craft') and
+                          (_loc.get('stash_page'), _pos.get('column'), _pos.get('row')) in nw_rares))
         if q in ('Rare', 'Craft'):
-            rare_items.append(it)
+            if not nw_covered:
+                rare_items.append(it)                   # server appraised; skip synthesized batch
         elif tab == 'Maps':
             # standard tier maps are NOT tracked by pd2trader's valuation -
             # their codes fuzzy-resolve to runes. Excluded from listing.
             it['hr'] = 0
             it['untracked'] = True
             continue
+        elif nw_covered:
+            continue                                    # server-priced; no legacy API call needed
         elif q in ('Unique', 'Set', 'Currency', 'Material') or it.get('runeword'):
             nm = it.get('code') if q == 'Currency' else (it.get('name') or it.get('base_name'))
             val_lines.append({'item': nm, 'qty': it.get('qty', 1), 'it': it})
@@ -573,13 +623,37 @@ def scan_once(token, env, tab_filter=None, full=False):
         it2 = dict(it)
         q = it['quality']
         nm_val = it.get('code') if q == 'Currency' else (it.get('name') or it.get('base_name'))
+        raw = it.get('raw') or {}
+        loc = raw.get('location') or {}
+        pos = raw.get('position') or {}
+        rare_key = (loc.get('stash_page'), pos.get('column'), pos.get('row'))
+        nw_line = nw_lines.get(str(raw.get('hash') or ''))
         if q in ('Rare', 'Craft'):
+            # server appraisal first (the hook's verdict/rank/band); synthesized
+            # batch stays as fallback when the item wasn't in the sync response
+            sr = nw_rares.get(rare_key)
             ap = aps.get(it['id']) or {}
-            band = ap.get('band') or ap.get('priceBand') or {}
-            hr = band.get('mid') or band.get('high') or band.get('low')
+            if sr:
+                band = sr.get('market') or {}
+                lo, hi = band.get('lowHr'), band.get('highHr')
+                ap = dict(ap,
+                          verdict=sr.get('verdict'),
+                          rank=sr.get('rank'),
+                          checkPriority=sr.get('checkPriority'),
+                          band={'low': lo, 'mid': (lo + hi) / 2 if lo is not None and hi is not None else None,
+                                'high': hi} if (lo is not None or hi is not None) else ap.get('band'),
+                          stats=sr.get('stats') or ap.get('stats') or [])
             it2['verdict'] = ap.get('verdict')
             it2['appraisal'] = ap
+            band = ap.get('band') or {}
+            hr = band.get('mid') or band.get('high') or band.get('low')
             it2['hr'] = hr if isinstance(hr, (int, float)) else 0
+        elif nw_line is not None and isinstance(nw_line.get('unitPrice'), (int, float)):
+            # server-priced: unitPrice is per unit; value is for the whole line
+            it2['hr'] = round(nw_line['unitPrice'] * it.get('qty', 1), 4)
+            it2['confidence'] = nw_line.get('confidence')
+            it2['nw'] = {'key': nw_line.get('key'), 'sampleCount': nw_line.get('sampleCount'),
+                         'change7d': nw_line.get('priceChange7dPercent')}
         elif it['id'] in probed:
             p = probed[it['id']]
             if p:

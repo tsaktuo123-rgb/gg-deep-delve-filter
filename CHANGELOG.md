@@ -4,6 +4,30 @@ All notable changes to the GG DEEP DELVE Project Diablo 2 filter project.
 Base: HiimFilter (Hyper) Season 14 build 247. Every original rule is preserved;
 all changes are additive or value/threshold updates.
 
+## v0.1.1 — 2026-11-18
+
+### Pricer (`scripts/stash_pricer.py`)
+- **Deep-delve pricing via the hook's own endpoint** (measured live 2026-11-17,
+  HTTP 200): `POST /api/networth/sync` with the PD2 token — the server fetches
+  the stash from PD2 itself and returns the whole stash priced
+  (`valuation.lines`, keyed by item hash) plus every rare appraised server-side
+  with verdict keep/check/vendor, predicted rank percentile within its slot,
+  and a market ask band (lowHr–highHr, sample size).
+- Join keys verified against the live stash: valuation `itemHashes` match the
+  stash item `hash` field 297/297; server rare tabs (`Shared N`) match
+  `location.stash_page`, positions `{column,row}` match exactly.
+- Rare standings now come from the server's verdict + band (via the existing
+  classify verdict/band path); the synthesized `/api/rares/appraisal/batch`
+  shape is fallback only. Legacy valuate/price-check paths remain fallback for
+  anything the server leaves unpriced.
+- Result measured: 73 CHECK rows (was 32–37) matching the hook's verdicts;
+  live market 40 listings / 31.91 HR total ask (was 16 / 24.46).
+- `Basilisk's Quill` (unique Bow Quiver stack, `aqv3`, qty 131): earlier
+  "fuzzy-match" claim REFUTED by measurement — valuate resolves the name to
+  itself and prices qty × unit exactly (1→0.14, 10→1.40, 131→18.34 HR);
+  price-check comps show other sellers' stacks asking 18.34 HR. Listing kept.
+
+
 ## v0.1.0 — 2026-11-17
 
 ### Filter (`filter/GG_DEEP_DELVE.filter`, live at `E:\...\filters\local\`)
