@@ -1411,11 +1411,12 @@ def discover(state, env, out_path=None):
 
 
 def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_delist=True,
-                 target_n=45, max_actions=15):
-    """Maintain the market at the TOP N listings by live value (the PD2 market
-    caps at 50 active listings; we hold 45 in rotation). Deep-ranked rows are
-    diffed against the live listings: delist what fell out of the top N or left
-    the stash, post what entered it. Rate-limited, action-capped per session."""
+                 target_n=None, max_actions=15):
+    """Maintain the market at the TOP N listings by live value. N comes from
+    .env GG_ROTATION_TARGET (default 45) so the server's true active-listing
+    ceiling gets measured the moment the stash offers more listable items
+    (the old hard-coded 45 predated the cap question)."""
+    target_n = target_n or max(1, int(env.get('GG_ROTATION_TARGET', '45')))
     token = env.get('PD2_AUTH_TOKEN', '')
     account = env.get('PD2_ACCOUNT_NAME', '').lower()
     cache = json.loads(CACHE.read_text(encoding='utf-8')) if CACHE.exists() else {}
