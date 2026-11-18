@@ -1132,7 +1132,12 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
     # slots" rule: VENDOR items are junk by definition)
     ranked = [r for r in rows if r['ask'] > 0 and r['item'].get('id')
               and r['standing'] in ('GG', 'CHECK')
-              and (r['item'].get('raw') or r['item'].get('quality') == 'Currency')
+              and r['item'].get('raw')                    # ONLY items physically
+              # in the shared stash may be listed. Synthetic currency-walk rows
+              # (boss/essence mats living outside the shared stash, measured
+              # 2026-11-18: dict counts != stash contents) posted phantom
+              # listings with unnamed cards for items the user could not even
+              # trade from the stash tab.
               and not str(r['item'].get('code', '')).startswith('r')]
     ranked.sort(key=lambda r: -r['ask'])
     target = ranked[:target_n]
@@ -1341,7 +1346,9 @@ def run_watch(env):
                 run_autolist(env, rows, max_posts=40, max_actions=45)
                 first_cycle = False
             else:
-                run_autolist(env, rows, max_posts=5, max_actions=5)
+                # per-tick rotation: re-rank + diff every cycle so new items
+                # displace the bottom of the top-45 (user rule: rotate each tick)
+                run_autolist(env, rows, max_posts=10, max_actions=12)
         except TokenExpired as e:
             paused = True
             state['token_expired'] = True

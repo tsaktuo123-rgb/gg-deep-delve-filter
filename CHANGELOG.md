@@ -4,6 +4,24 @@ All notable changes to the GG DEEP DELVE Project Diablo 2 filter project.
 Base: HiimFilter (Hyper) Season 14 build 247. Every original rule is preserved;
 all changes are additive or value/threshold updates.
 
+## v0.1.3 — 2026-11-18
+
+### Ownership fix (user-reported: "items I don't even own")
+- **Only items physically in the shared stash may be listed.** The rotation
+  previously allowed synthetic currency-walk rows (raw-less), which posted 4
+  phantom listings (unnamed cards) for mats whose PD2 currency-dict counts
+  cover holdings OUTSIDE the shared stash — measured: dict says 5x Festering
+  Essence of Destruction / 15x Sigil of Madawc / 5x Burning Essence of Terror,
+  shared stash has 0 of each. Those mats live on characters; they were never
+  tradeable from the stash tab. The 4 phantoms were delisted and replaced
+  with real items; post-fix audit: 0 of 45 listings reference items not in
+  the stash.
+- The walk rows still price for dashboard/net-worth visibility, but can no
+  longer enter the rotation.
+- **Per-tick rotation raised**: watch cycles now re-rank and diff with caps
+  10 posts / 12 actions per 90 s tick (was 5/5) — new items displace the
+  bottom of the top-45 every tick.
+
 ## v0.1.2 — 2026-11-18
 
 ### Watcher (`scripts/stash_pricer.py`)
