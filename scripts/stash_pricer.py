@@ -39,12 +39,13 @@ import json
 import os
 import re
 import shutil
+import statistics
 import subprocess
 import sys
 import time
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 # ------------------------------------------------------------------ config
@@ -479,6 +480,97 @@ def valuate_lines(lines, hours=168):
 
 COMP_CACHE = {}                                        # name -> (ts, sorted prices)
 COMP_TTL = 3600                                        # re-query market comps hourly
+
+# ---- sold market (v0.4.0): the pricing truth - what actually SOLD
+SOLD_FILE = REPO / 'sold_market.json'
+SOLD_TTL = 1800                                        # refresh the sold corpus every 30 min
+SOLD_MAX_PAGES = 15                                    # 15x100 = up to 1500 recent solds
+SOLD_CACHE = {'rows': None, 'ts': 0}
+
+
+def fetch_sold_market(max_pages=SOLD_MAX_PAGES):
+    """The market's SOLD corpus (accepted offers), newest first. Rows carry
+    name, base, quality, sockets, eth, corrupted, hr_price (only when the
+    listing was PRICED - o.b.o. solds prove sellability but not the amount),
+    and updated_at. Cached to sold_market.json + memory (30 min TTL)."""
+    now = time.time()
+    if SOLD_CACHE['rows'] is not None and now - SOLD_CACHE['ts'] < SOLD_TTL:
+        return SOLD_CACHE['rows']
+    disk = None
+    if SOLD_FILE.exists():
+        try:
+            disk = json.loads(SOLD_FILE.read_text(encoding='utf-8'))
+            if now - disk.get('ts', 0) < SOLD_TTL:
+                SOLD_CACHE['rows'] = disk.get('rows') or []
+                SOLD_CACHE['ts'] = disk.get('ts', 0)
+                return SOLD_CACHE['rows']
+        except Exception:                               # noqa: BLE001
+            disk = None
+    q = urllib.parse.urlencode({'type': 'item', '$limit': '100',
+                                'accepted_offer_id[$ne]': 'null',
+                                'is_ladder': 'true', 'is_hardcore': 'false',
+                                '$sort[updated_at]': '-1'})
+    rows = []
+    for page in range(max_pages):
+        qq = q + '&$skip=%d' % (page * 100)
+        try:
+            d = http_json(PD2_API_BASE + '/market/listing?' + qq)
+        except Exception:                               # noqa: BLE001
+            break
+        data = d.get('data') or []
+        for l in data:
+            it = l.get('item') or {}
+            rows.append({
+                'name': (it.get('name') or '').strip(),
+                'base': ((it.get('base') or {}).get('name') or '').strip(),
+                'quality': (it.get('quality') or {}).get('name') or '',
+                'sockets': it.get('socketed_count') or 0,
+                'eth': bool(it.get('is_ethereal')),
+                'corrupted': bool(it.get('corrupted')),
+                'hr': l.get('hr_price') if isinstance(l.get('hr_price'), (int, float)) else None,
+                'at': (l.get('updated_at') or '')[:10],
+            })
+        if len(data) < 100:
+            break
+        time.sleep(0.2)
+    if rows:
+        SOLD_CACHE['rows'] = rows
+        SOLD_CACHE['ts'] = now
+        try:
+            SOLD_FILE.write_text(json.dumps({'ts': now, 'rows': rows}), encoding='utf-8')
+        except Exception:                               # noqa: BLE001
+            pass
+    return rows
+
+
+def sold_comps(item, window_days=7):
+    """Sale evidence for one item (user's two gates, v0.4.0):
+      gate A (sellable):  any item of this type sold within the window
+      gate B (price):     median of recent PRICED solds of the same type
+    Comp matching: exact name for uniques/sets/panel mats; base name + quality
+    for rares/crafts/magic/bases (their generated names recur with different
+    rolls, so base+quality is the honest comparable)."""
+    rows = fetch_sold_market()
+    if not rows:
+        return {'count': 0, 'priced': 0, 'median': None}
+    q = it.get('quality') or ''
+    nm = (it.get('name') or '').strip().lower()
+    bn = (it.get('base_name') or '').strip().lower()
+    if q in ('Unique', 'Set', 'Currency'):
+        key = nm
+    else:
+        key = bn or nm
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=window_days)).strftime('%Y-%m-%d')
+    hits = [r for r in rows if (r.get('name') or '').strip().lower() == key
+            and (r.get('at') or '') >= cutoff]
+    if not hits and q not in ('Unique', 'Set', 'Currency'):
+        hits = [r for r in rows if (r.get('base') or '').strip().lower() == bn
+                and (r.get('quality') or '') == q
+                and (r.get('at') or '') >= cutoff]
+    priced = sorted(r['hr'] for r in hits if isinstance(r.get('hr'), (int, float)) and r['hr'] > 0)
+    median = round(statistics.median(priced), 4) if len(priced) >= 2 else None
+    return {'count': len(hits), 'priced': len(priced), 'median': median,
+            'last': max((r.get('at') or '') for r in hits) if hits else ''}
 
 
 def market_comp_ask(name, pct=25):
@@ -1035,6 +1127,23 @@ def scan_once(token, env, tab_filter=None, full=False):
                 it2['hr'] = min_ask if pre < 1.0 else pct_price
                 it2['confidence'] = 'market-comps(%d, %s)' % (
                     n, 'min' if pre < 1.0 else 'p%d' % ask_pct)
+        # sold-market gates (v0.4.0): the item must have RECENT SALE evidence
+        # of its type, and the ask anchors to what actually sold (priced
+        # solds) when two or more exist - asks lie, solds do not.
+        try:
+            sc = sold_comps(it2, window_days=int(env.get('GG_SALE_WINDOW_DAYS', '7')))
+        except Exception:                                   # noqa: BLE001
+            sc = {'count': 0, 'priced': 0, 'median': None}
+        it2['sold'] = sc
+        sold_min = max(1, int(env.get('GG_SOLD_MIN', '1')))   # gate 1: the type sold at least once recently
+        it2['sale_ok'] = sc['count'] >= sold_min
+        if sc['median'] is not None and sc['priced'] >= int(env.get('GG_SOLD_PRICE_MIN', '2')):
+            pre2 = it2.get('hr') or 0
+            if pre2 < 1.0:
+                it2['hr'] = round(min(sc['median'], pre2) if pre2 else sc['median'], 4)
+            else:
+                it2['hr'] = sc['median']
+            it2['confidence'] = 'sold-median(%d sold, %d priced)' % (sc['count'], sc['priced'])
         priced_items.append(it2)
     # cache
     for it in priced_items:
@@ -1455,8 +1564,12 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
               # stashes) OR server-vouched currency-panel rows may be listed.
               # Synthetic currency-walk rows (raw-less, unvouched) posted
               # phantom listings - measured 2026-11-18, 4 phantoms delisted.
-              and not str(r['item'].get('code', '')).startswith('r')]
-    ranked.sort(key=lambda r: -r['ask'])
+              and not str(r['item'].get('code', '')).startswith('r')
+              and r['item'].get('sale_ok')]               # v0.4.0 gate 1: the type sells recently
+    ranked.sort(key=lambda r: (-(r['item'].get('sold') or {}).get('count', 0), -r['ask']))
+    # v0.4.0: VOLUME FIRST (user rule) - the rotation is ranked by how many of
+    # that item's type sold this week, not by price. High-volume types sell
+    # fastest, so they take the slots; ask only breaks ties.
     target = ranked[:target_n]
     target_ids = [r['item']['id'] for r in target]
 
