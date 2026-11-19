@@ -1362,9 +1362,19 @@ def scan_once(token, env, tab_filter=None, full=False):
         vol_cutoff = vols[min(len(vols) - 1, int(len(vols) * (100 - top_pct) / 100))]
     else:
         vol_cutoff = 0
+    sold_min_vol = max(1, int(env.get('GG_SOLD_MIN_VOL', '3')))
     for it in priced_items:
+        # the volume exception judges each EVIDENCE KIND on its own scale:
+        # rares/crafts by their sold volume (>= the gate-1 threshold), server
+        # lines by their sampleCount percentile. Mixing the scales broke the
+        # jewels (50 weekly solds vs a ~500 sampleCount cutoff - measured).
+        s = it.get('sold') or {}
+        if it.get('quality') in ('Rare', 'Craft'):
+            vol_exception = s.get('vol_type', 0) >= sold_min_vol or s.get('vol_name', 0) >= 1
+        else:
+            vol_exception = eff_vol(it) > 0 and eff_vol(it) >= vol_cutoff
         it['list_ok'] = bool(it.get('sale_ok')) and (
-            (it.get('hr') or 0) >= floor or (eff_vol(it) > 0 and eff_vol(it) >= vol_cutoff))
+            (it.get('hr') or 0) >= floor or vol_exception)
     n_floor = sum(1 for it in priced_items if it.get('list_ok') and (it.get('hr') or 0) >= floor)
     n_vol = sum(1 for it in priced_items if it.get('list_ok') and (it.get('hr') or 0) < floor)
     print('gate 2: %d listable (%d by price >= %.2f HR, %d by volume top-%d%%)'
