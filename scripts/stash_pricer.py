@@ -1157,7 +1157,8 @@ def scan_once(token, env, tab_filter=None, full=False):
         prev = seen.get(fp)
         if prev and isinstance(prev, dict) and prev.get('hr') is not None \
                 and not prev.get('needs_probe') and not full:
-            fresh.append(dict(it, hr=prev.get('hr'), status='cached'))
+            fresh.append(dict(it, hr=prev.get('hr'), post_price=prev.get('post_price'),
+                              status='cached'))
             continue
         fresh.append(dict(it))
     # ---- deep delve: the hook's server-side networth/sync (one call prices the
@@ -1315,6 +1316,15 @@ def scan_once(token, env, tab_filter=None, full=False):
                 it['unpriced'] = True
                 it['sale_ok'] = False
                 continue
+            # HYSTERESIS (v0.4.3): the baseline moves as the market moves —
+            # without a dead-band the watcher repriced every listing every
+            # cycle (measured: the churn emptied the market to 0 live). A new
+            # target within 15% of the CURRENT posted price keeps the sticky
+            # price; only a real market move (>15%) reprices.
+            stored_pp = it.get('post_price')
+            if isinstance(stored_pp, (int, float)) and stored_pp > 0 and \
+                    abs(target - stored_pp) <= max(0.02, 0.15 * stored_pp):
+                target = stored_pp
         if it.get('quality') == 'Unique' and raw.get('corrupted'):
             # corrupted unique: the API's corruption feed prices THIS corruption
             feed = corruption_feed_price(nm, raw.get('corruptions') or [])
@@ -1332,6 +1342,12 @@ def scan_once(token, env, tab_filter=None, full=False):
                 if fair_unit is None:
                     continue
                 target = round(fair_unit * discount, 2)  # unit, posting format
+            # the same hysteresis dead-band for the comp path: a new target
+            # within 15% of the current posted price keeps the sticky price
+            stored_pp = it.get('post_price')
+            if isinstance(stored_pp, (int, float)) and stored_pp > 0 and \
+                    abs(target - stored_pp) <= max(0.02, 0.15 * stored_pp):
+                target = stored_pp
         it['post_price'] = target
         judged = target * (qty if (not is_gear and qty > 1) else 1)
         if it['hr'] is None:
@@ -1382,6 +1398,7 @@ def scan_once(token, env, tab_filter=None, full=False):
     # cache
     for it in priced_items:
         seen[fingerprint(it)] = {'name': it.get('name'), 'hr': it.get('hr'),
+                                 'post_price': it.get('post_price'),
                                  'needs_probe': bool(it.get('needs_probe')),
                                  'ts': datetime.now(timezone.utc).isoformat()}
     cache['items'] = seen
