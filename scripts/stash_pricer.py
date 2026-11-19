@@ -654,7 +654,7 @@ def market_comp_ask(name, pct=25, exclude_uid=None):
         return None
     cached = COMP_CACHE.get(name)
     if cached and time.time() - cached[0] < COMP_TTL:
-        prices = cached[1]
+        return cached[1]
     else:
         q = urllib.parse.urlencode({
             'type': 'item', '$limit': '40',
@@ -666,18 +666,23 @@ def market_comp_ask(name, pct=25, exclude_uid=None):
             _, d = http_json(PD2_API_BASE + '/market/listing?' + q)
         except Exception:                               # noqa: BLE001
             return None
-        prices = sorted(l['hr_price'] for l in (d.get('data') or [])
-                        if isinstance(l.get('hr_price'), (int, float)) and l['hr_price'] > 0
-                        and (not exclude_uid
-                             or str(l.get('user_id') or '') != str(exclude_uid)))
-        if len(prices) < 3:
+        pairs = [(l['hr_price'], (l.get('item') or {}).get('quantity') or 1)
+                 for l in (d.get('data') or [])
+                 if isinstance(l.get('hr_price'), (int, float)) and l['hr_price'] > 0
+                 and (not exclude_uid
+                      or str(l.get('user_id') or '') != str(exclude_uid))]
+        if len(pairs) < 3:
             return None
-        COMP_CACHE[name] = (time.time(), prices)
+        prices = sorted(p[0] for p in pairs)
+        units = sorted(p[0] / max(1, p[1]) for p in pairs)
+        result = {'min': round(prices[0], 4),
+                  'p25': round(prices[max(0, len(prices) // 4)], 4),
+                  'med': round(prices[len(prices) // 2], 4),
+                  'n': len(prices),
+                  'unit_med': round(statistics.median(units), 4)}
+        COMP_CACHE[name] = (time.time(), result)
         time.sleep(0.05)                                # polite per fresh query
-    idx = min(len(prices) - 1, int(len(prices) * pct / 100))
-    return (round(prices[idx], 4), round(prices[0], 4),
-            round(prices[max(0, len(prices) // 4)], 4),
-            round(prices[len(prices) // 2], 4), len(prices))
+        return result
 
 
 def networth_sync(token, account, is_ladder=True, is_hardcore=False):
@@ -1215,13 +1220,32 @@ def scan_once(token, env, tab_filter=None, full=False):
         if not nm or it.get('quality') in ('Rare', 'Craft') or it.get('hr') is None:
             continue
         comp = market_comp_ask(nm, exclude_uid=owner_uid)
-        if comp:
-            fair = comp[3]                                   # median ask of others = Fair
-            target = round(fair * discount, 4)
+        if not comp:
+            continue
+        qty = it.get('qty') or 1
+        # GEAR vs NON-GEAR split (user rule 2026-11-18, measured: Warshrike /
+        # Flying Axe are category 'weapon' — GEAR even though throwing
+        # weapons carry a quantity; the quantity is the throw/ammo count).
+        # GEAR: priced as the item it is — the median ask of the same weapon
+        # x discount, posted as the TOTAL, never unit-divided.
+        # NON-GEAR stacks (category misc — panel mats): the fair reference is
+        # per-UNIT (other stacks come in different sizes), posted per-unit.
+        cat = ((it.get('raw') or {}).get('category') or '').strip().lower()
+        is_gear = cat in ('weapon', 'armor') or qty <= 1
+        if is_gear:
+            target = round(comp['med'] * discount, 4)      # total, posting format
+            it['post_price'] = target
             if it['hr'] > target:
-                it['post_price'] = target
                 n_base += 1
-    print('steal baseline: %d item(s) priced under Fair (x%.2f discount)' % (n_base, discount))
+        else:
+            fair_unit = comp['unit_med']
+            if fair_unit is None:
+                continue
+            target_unit = round(fair_unit * discount, 4)
+            it['post_price'] = target_unit                 # unit, posting format
+            if it['hr'] > target_unit * qty:
+                n_base += 1
+    print('steal baseline: %d item(s) posted under Fair (x%.2f discount; gear total-priced, misc stacks unit-priced)' % (n_base, discount))
     # gate 2 (v0.4.2): price floor 0.25 HR, with the API-NATIVE volume
     # exception - the server's own sampleCount per valuation line. An item
     # under the floor still lists when its line's sample count ranks in the
@@ -1729,13 +1753,17 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
                    'socketed_count': 0, 'item_level': 1, 'id': iid,
                    'location': {'storage': 'Shared Stash', 'stash_page': 0}}
         note = strict_note(it, obo=obo)
-        # stacked items post at the UNIT price (that is what people search;
-        # buyers do the qty math at trade time) - the quantity is already in
-        # the note ('Nx o.b.o.'). Ranking still uses the stack total above.
-        # The steal baseline (post_price) is the posting price when set.
-        qty = it.get('qty') or 1
-        want_total = it.get('post_price') or r['ask']
-        post_price = round(want_total / qty, 4) if qty > 1 else round(want_total, 2)
+        # the steal baseline (post_price) is stored ALREADY in posting format
+        # (total for gear incl. weapon stacks; unit for misc-panel stacks) by
+        # the scan pass - use it directly, never re-divide.
+        if it.get('post_price') is not None:
+            post_price = round(it['post_price'], 4)
+        else:
+            qty = it.get('qty') or 1
+            want_total = r['ask']
+            _cat = ((it.get('raw') or {}).get('category') or '').strip().lower()
+            post_price = round(want_total / qty, 4) if (qty > 1 and _cat not in ('weapon', 'armor')) \
+                else round(want_total, 2)
         # self-repricing: a live listing whose price drifted >10% from the
         # current model (dirt-cheap sub-1HR / percentile / comp refresh) is
         # delisted now and reposted at the new price within the same tick
