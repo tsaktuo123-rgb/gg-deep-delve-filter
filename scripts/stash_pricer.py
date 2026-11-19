@@ -1296,19 +1296,6 @@ def scan_once(token, env, tab_filter=None, full=False):
         is_gear = cat in ('weapon', 'armor') or qty <= 1
         target = None                                   # total-stack posting price
         if it.get('quality') in ('Rare', 'Craft'):
-            # rares/crafts: the SOLD corpus GATES the type (>=2 priced solds
-            # of this base+quality+corruption state = the type sells), and the
-            # SERVER's per-item appraisal PRICES it (rank+band differ by
-            # stats). The pooled sold median was measured wrong: it priced
-            # every jewel 0.48 regardless of stats (junk jewels at High+433%
-            # while their per-item model value is 0.11).
-        if it.get('quality') in ('Rare', 'Craft'):
-            # rares/crafts: the SOLD corpus GATES the type (>=2 priced solds
-            # of this base+quality+corruption state = the type sells), and the
-            # SERVER's per-item appraisal PRICES it (rank+band differ by
-            # stats). The pooled sold median was measured wrong: it priced
-            # every jewel 0.48 regardless of stats (junk jewels at High+433%
-            # while their per-item model value is 0.11).
             sc = sold_comps(it, window_days=int(env.get('GG_SALE_WINDOW_DAYS', '7')))
             it['sold'] = sc
             it['eff_vol'] = sc['count']                 # the type's sold volume = the API-native gate-2 volume
