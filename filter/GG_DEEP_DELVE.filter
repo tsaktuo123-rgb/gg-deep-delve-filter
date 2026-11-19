@@ -4562,4 +4562,4 @@ ItemDisplay[wss]: %MAP-62%%NAME%%CONTINUE%
 // rings/amulets hidden at every strictness; uniques (SoJ, Maras, Raven
 // Frost...), sets, and CRAFTED amulets still show; the watcher still prices
 // and lists them from the stash ====
-ItemDisplay[(rin OR amu) (MAG OR RARE) !UNI !SET !RW !SHOP]:
+ItemDisplay[(rin OR amu) MAG !UNI !SET !RW !SHOP]:
