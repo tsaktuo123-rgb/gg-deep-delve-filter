@@ -1883,7 +1883,6 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
             needs_format_fix = isinstance(cur, (int, float)) and \
                 abs(cur - round(cur, 2)) > 1e-9
             if it.get('name') == 'Jewel':
-                print('  [DBG jewel-rotate] iid=%s in_own=yes cur=%r post_price=%r fires=%s' % (
                     iid[:8], cur, post_price,
                     bool(isinstance(cur, (int, float)) and cur > 0 and
                          (needs_format_fix or
