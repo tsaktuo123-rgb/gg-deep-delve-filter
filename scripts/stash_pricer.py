@@ -1302,8 +1302,16 @@ def scan_once(token, env, tab_filter=None, full=False):
             # stats). The pooled sold median was measured wrong: it priced
             # every jewel 0.48 regardless of stats (junk jewels at High+433%
             # while their per-item model value is 0.11).
+        if it.get('quality') in ('Rare', 'Craft'):
+            # rares/crafts: the SOLD corpus GATES the type (>=2 priced solds
+            # of this base+quality+corruption state = the type sells), and the
+            # SERVER's per-item appraisal PRICES it (rank+band differ by
+            # stats). The pooled sold median was measured wrong: it priced
+            # every jewel 0.48 regardless of stats (junk jewels at High+433%
+            # while their per-item model value is 0.11).
             sc = sold_comps(it, window_days=int(env.get('GG_SALE_WINDOW_DAYS', '7')))
             it['sold'] = sc
+            it['eff_vol'] = sc['count']                 # the type's sold volume = the API-native gate-2 volume
             if sc['priced'] >= 2 and sc['median']:
                 band_val = it.get('hr')
                 if isinstance(band_val, (int, float)) and band_val > 0:
@@ -1315,6 +1323,11 @@ def scan_once(token, env, tab_filter=None, full=False):
                     # no band: the type's sold median is the only anchor
                     it['post_price'] = round(sc['median'] * discount, 2)
                     it['confidence'] = 'sold-median(%d sold, %d priced)' % (sc['count'], sc['priced'])
+            else:
+                it['hr'] = None
+                it['unpriced'] = True
+                it['sale_ok'] = False
+                continue
             else:
                 it['hr'] = None
                 it['unpriced'] = True
@@ -1358,7 +1371,9 @@ def scan_once(token, env, tab_filter=None, full=False):
     # top_pct=50 -> 50th percentile/median (top 50% qualify) - STRICTER
 
     def eff_vol(it):
-        return it.get('samples') or 0
+        # the volume evidence: sold-corpus count for rares/crafts (set in the
+        # steal pass), the server line's sampleCount for everything else
+        return it.get('eff_vol') or it.get('samples') or 0
 
     vols = sorted(eff_vol(it) for it in priced_items if it.get('sale_ok') and eff_vol(it) > 0)
     if vols:
