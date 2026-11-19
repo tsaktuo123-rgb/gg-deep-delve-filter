@@ -604,8 +604,11 @@ def sold_comps(item, window_days=7):
     named = [r for r in rows if (r.get('name') or '').strip().lower() == nm and in_window(r)]
     typed = []
     if q not in ('Unique', 'Set', 'Currency'):
+        item_corr = bool(item.get('raw') or {}).get('corrupted')
         typed = [r for r in rows if (r.get('base') or '').strip().lower() == bn
-                 and (r.get('quality') or '') == q and in_window(r)]
+                 and (r.get('quality') or '') == q
+                 and r.get('corrupted') == item_corr
+                 and in_window(r)]
     cat_rows = [r for r in rows if (r.get('cat') or '') == cat and in_window(r)] if cat else []
     priced_named = [r['hr'] for r in named if isinstance(r.get('hr'), (int, float)) and r['hr'] > 0]
     median = round(statistics.median(priced_named), 4) if len(priced_named) >= 2 else None
@@ -1287,13 +1290,26 @@ def scan_once(token, env, tab_filter=None, full=False):
     n_base = 0
     for it in priced_items:
         nm = it.get('name')
-        if not nm or it.get('quality') in ('Rare', 'Craft') or it.get('hr') is None:
-            continue
         qty = it.get('qty') or 1
         raw = it.get('raw') or {}
         cat = (raw.get('category') or '').strip().lower()
         is_gear = cat in ('weapon', 'armor') or qty <= 1
         target = None                                   # total-stack posting price
+        if it.get('quality') in ('Rare', 'Craft'):
+            # rares/crafts: the ONLY honest price is what this exact type
+            # (base+quality+corruption state) SOLD for — >=2 priced solds
+            # required. No priced-sale evidence -> not listed (owner rule:
+            # no unmeasured prices on the market).
+            sc = sold_comps(it, window_days=int(env.get('GG_SALE_WINDOW_DAYS', '7')))
+            it['sold'] = sc
+            if sc['priced'] >= 2 and sc['median']:
+                target = round(sc['median'] * discount, 2)
+                it['confidence'] = 'sold-median(%d sold, %d priced)' % (sc['count'], sc['priced'])
+            else:
+                it['hr'] = None
+                it['unpriced'] = True
+                it['sale_ok'] = False
+                continue
         if it.get('quality') == 'Unique' and raw.get('corrupted'):
             # corrupted unique: the API's corruption feed prices THIS corruption
             feed = corruption_feed_price(nm, raw.get('corruptions') or [])
