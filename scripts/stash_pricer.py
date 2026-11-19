@@ -1882,11 +1882,6 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
             lid, cur = own[iid]
             needs_format_fix = isinstance(cur, (int, float)) and \
                 abs(cur - round(cur, 2)) > 1e-9
-            if it.get('name') == 'Jewel':
-                    iid[:8], cur, post_price,
-                    bool(isinstance(cur, (int, float)) and cur > 0 and
-                         (needs_format_fix or
-                          abs(cur - post_price) > max(0.02, 0.10 * post_price)))))
             if isinstance(cur, (int, float)) and cur > 0 and \
                     (needs_format_fix or
                      abs(cur - post_price) > max(0.02, 0.10 * post_price)) and \
