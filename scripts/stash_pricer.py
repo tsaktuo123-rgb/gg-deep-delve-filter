@@ -613,6 +613,8 @@ def sold_comps(item, window_days=7):
     priced_named = [r['hr'] for r in named if isinstance(r.get('hr'), (int, float)) and r['hr'] > 0]
     median = round(statistics.median(priced_named), 4) if len(priced_named) >= 2 else None
     unit_median = None
+    top_decile_named = round(priced_named[min(len(priced_named) - 1, int(len(priced_named) * 0.9))], 4) \
+        if len(priced_named) >= 2 else None
     if median is not None and (item.get('qty') or 1) > 1:
         # stackable: price evidence is per-unit (solds come in different stack
         # sizes; the unit price is the comparable) - the caller scales it by
@@ -640,6 +642,7 @@ def sold_comps(item, window_days=7):
     
     return {'count': len(hits), 'priced': len(priced_named) + len(priced_typed),
             'median': median, 'unit_median': unit_median,
+            'top_decile': top_decile_named,
             'vol_name': len(named), 'vol_type': len(typed), 'vol_cat': len(cat_rows),
             'tier': tier,
             'last': max((r.get('at') or '') for r in hits) if hits else '',
@@ -1311,6 +1314,18 @@ def scan_once(token, env, tab_filter=None, full=False):
                     # no band: the type's sold median is the only anchor
                     target = round(sc['median'] * discount, 2)
                     it['confidence'] = 'sold-median(%d sold, %d priced)' % (sc['count'], sc['priced'])
+                # KEEP-RANK FLOOR (v0.4.3): a server-verified KEEP at rank >=0.9
+                # never prices below the type's top-decile sold price. Measured
+                # validation: the owner's rank-0.965 ED jewel listed at 7 HR
+                # drew immediate buyer spam - the floor was right.
+                ap = it.get('appraisal') or {}
+                rank = ap.get('rank')
+                td = sc.get('top_decile')
+                if ap.get('verdict') == 'keep' and isinstance(rank, (int, float)) \
+                        and rank >= 0.9 and isinstance(td, (int, float)) and td > 0 \
+                        and isinstance(target, (int, float)) and target < td:
+                    target = round(td, 2)
+                    it['confidence'] = 'keep-rank-floor(rank %.2f, top-decile %.2f)' % (rank, td)
             else:
                 it['hr'] = None
                 it['unpriced'] = True
@@ -1840,10 +1855,18 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
         # stack amount — no stat text (the game shows the stats itself)
         return ('%dx o.b.o.' % qty) if qty > 1 else 'o.b.o.'
 
-    # 1. delist: listings whose item left the stash OR fell out of the top N
+    # the watcher-managed listing ids (the rotation only reprices/displaces
+    # listings IT posted - the owner's manual listings are untouchable)
+    watcher_lids = {v.get('listing_id') for v in cache.get('listings', {}).values()
+                    if isinstance(v, dict) and v.get('listing_id')}
+
+    # 1. delist: listings whose item left the stash (always stale) — but the
+    # rotation's own displacement only touches WATCHER-posted listings
     if do_delist and user_id:
         for iid, (lid, _p) in list(own.items()):
-            if iid not in stash_ids or iid not in target_ids:
+            manual_listing = lid not in watcher_lids
+            if (iid not in stash_ids and lid in watcher_lids) or \
+                    (iid not in target_ids and lid in watcher_lids):
                 if actions >= max_actions:
                     print('  action cap (%d) reached mid-delist' % max_actions)
                     break
@@ -1881,8 +1904,9 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
         note = strict_note(it, obo=obo)
         # the steal baseline (post_price) is stored ALREADY in posting format
         # (total for gear incl. weapon stacks; unit for misc-panel stacks) by
-        # the scan pass - use it directly, never re-divide.
-        if it.get('post_price') is not None:
+        # the scan pass - use it directly, never re-divide. MANUAL LISTINGS
+        # (the owner posted them, not the watcher) are never repriced.
+        if it.get('post_price') is not None and lid in watcher_lids:
             post_price = round(it['post_price'], 4)
         else:
             qty = it.get('qty') or 1
@@ -1895,8 +1919,13 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
         # delisted now and reposted at the new price within the same tick.
         # A listing not on the 2-decimal grid (0.6525-style) ALWAYS reprices
         # (user rule: strict x.xx pricing, never botish 4-decimals).
+        # MANUAL LISTINGS (the owner posted them, not the watcher) are NEVER
+        # repriced — measured validation: the owner's 7 HR rank-0.965 jewel.
         if iid in own and do_delist:
             lid, cur = own[iid]
+            if lid not in watcher_lids:
+                kept += 1
+                continue                                # owner's manual listing - untouchable
             needs_format_fix = isinstance(cur, (int, float)) and \
                 abs(cur - round(cur, 2)) > 1e-9
             if isinstance(cur, (int, float)) and cur > 0 and \
