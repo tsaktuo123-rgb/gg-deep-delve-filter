@@ -2042,8 +2042,12 @@ def run_watch(env):
             total = sum(i.get('hr') or 0 for i in state['items'])
             n_gg = sum(1 for r in rows if r['standing'] == 'GG')
             n_check = sum(1 for r in rows if r['standing'] == 'CHECK')
-            print('cycle: %d items | %.2f HR | %d GG / %d CHECK' % (
-                len(state['items']), total, n_gg, n_check))
+            # the net worth is the server's verified figure — never our sum
+            # (our arithmetic counts categories the server excludes by design)
+            shown_total = state.get('server_total') if isinstance(
+                state.get('server_total'), (int, float)) else total
+            print('cycle: %d items | net worth %.2f HR (server) | %d GG / %d CHECK' % (
+                len(state['items']), shown_total, n_gg, n_check))
             # slam popups (user request 2026-11-18): a NEWLY-seen uncorrupted
             # GG unique/craft pops the in-game toast + chime - "GO SLAM IT"
             slam_new = []
