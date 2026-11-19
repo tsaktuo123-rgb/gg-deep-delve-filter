@@ -604,7 +604,7 @@ def sold_comps(item, window_days=7):
     named = [r for r in rows if (r.get('name') or '').strip().lower() == nm and in_window(r)]
     typed = []
     if q not in ('Unique', 'Set', 'Currency'):
-        item_corr = bool(item.get('raw') or {}).get('corrupted')
+        item_corr = bool((item.get('raw') or {}).get('corrupted'))
         typed = [r for r in rows if (r.get('base') or '').strip().lower() == bn
                  and (r.get('quality') or '') == q
                  and r.get('corrupted') == item_corr
