@@ -4557,3 +4557,9 @@ ItemDisplay[wss]: %MAP-62%%NAME%%CONTINUE%
 
 // ==== GG SLAM TABLE - REMOVED by owner decision 2026-11-18 (not useful while mapping) ====
 // ==== END GG SLAM TABLE ====
+
+// ==== GG HIDE RINGS & AMULETS (owner decision 2026-11-19) - magic and rare
+// rings/amulets hidden at every strictness; uniques (SoJ, Maras, Raven
+// Frost...), sets, and CRAFTED amulets still show; the watcher still prices
+// and lists them from the stash ====
+ItemDisplay[(rin OR amu) (MAG OR RARE) !UNI !SET !RW !SHOP]:
