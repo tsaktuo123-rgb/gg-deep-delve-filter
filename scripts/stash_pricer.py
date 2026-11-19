@@ -1303,13 +1303,18 @@ def scan_once(token, env, tab_filter=None, full=False):
                 band_val = it.get('hr')
                 if isinstance(band_val, (int, float)) and band_val > 0:
                     # per-item stat-aware price: the server's own appraisal
-                    it['post_price'] = round(band_val * discount, 2)
+                    target = round(band_val * discount, 2)
                     it['confidence'] = 'server-per-item(x%.2f; type sold n=%d, priced=%d)' % (
                         discount, sc['count'], sc['priced'])
                 else:
                     # no band: the type's sold median is the only anchor
-                    it['post_price'] = round(sc['median'] * discount, 2)
+                    target = round(sc['median'] * discount, 2)
                     it['confidence'] = 'sold-median(%d sold, %d priced)' % (sc['count'], sc['priced'])
+            else:
+                it['hr'] = None
+                it['unpriced'] = True
+                it['sale_ok'] = False
+                continue
             else:
                 it['hr'] = None
                 it['unpriced'] = True
@@ -1880,8 +1885,14 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
         # (user rule: strict x.xx pricing, never botish 4-decimals).
         if iid in own and do_delist:
             lid, cur = own[iid]
-            needs_format_fix = isinstance(cur, (int, float)) and round(cur, 2) != round(cur, 2) + 1e-9 \
-                and abs(cur - round(cur, 2)) > 1e-9
+            needs_format_fix = isinstance(cur, (int, float)) and \
+                abs(cur - round(cur, 2)) > 1e-9
+            if it.get('name') == 'Jewel':
+                print('  [DBG jewel-rotate] iid=%s in_own=yes cur=%r post_price=%r fires=%s' % (
+                    iid[:8], cur, post_price,
+                    bool(isinstance(cur, (int, float)) and cur > 0 and
+                         (needs_format_fix or
+                          abs(cur - post_price) > max(0.02, 0.10 * post_price)))))
             if isinstance(cur, (int, float)) and cur > 0 and \
                     (needs_format_fix or
                      abs(cur - post_price) > max(0.02, 0.10 * post_price)) and \
