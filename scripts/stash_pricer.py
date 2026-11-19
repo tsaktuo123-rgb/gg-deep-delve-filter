@@ -641,6 +641,64 @@ def sold_comps(item, window_days=7):
             'provenance': provenance}
 
 
+# corruption-feed pricing for corrupted uniques (v0.4.3): the API's own
+# per-corruption medians, keyed by the catalog's baseCode
+CATALOG_CACHE = {'ts': 0, 'map': None}
+CORRUPT_FEED_CACHE = {}
+
+
+def catalog_map():
+    """itemName(lower) -> pd2trader baseCode, from the average/all catalog
+    (cached 30 min)."""
+    now = time.time()
+    if CATALOG_CACHE['map'] is not None and now - CATALOG_CACHE['ts'] < 1800:
+        return CATALOG_CACHE['map']
+    _, d = http_json('https://pd2trader.com/item-prices/average/all?isLadder=true&isHardcore=false&hours=168')
+    rows = d.get('data') if isinstance(d, dict) else d
+    m = {r.get('itemName', '').strip().lower(): r.get('baseCode')
+         for r in rows if r.get('baseCode')}
+    CATALOG_CACHE['map'] = m
+    CATALOG_CACHE['ts'] = now
+    return m
+
+
+def corruption_feed_price(item_name, corruptions):
+    """The corruption feed's median price for THIS corrupted unique's own
+    corruption (token-overlap text match, sample >= 3). Verified against the
+    live feed: Steel Carapace clean median 0.27 with per-corruption rows
+    (to All Skills 6.0 n=82, Numsockets 1.0 n=789...)."""
+    try:
+        bc = catalog_map().get((item_name or '').strip().lower())
+        if not bc or not corruptions:
+            return None
+        now = time.time()
+        cached = CORRUPT_FEED_CACHE.get(bc)
+        if cached and now - cached[0] < 1800:
+            rows = cached[1]
+        else:
+            _, d = http_json('https://pd2trader.com/item-prices/corruption-prices'
+                             '?baseCode=%s&isLadder=true&isHardcore=false&hours=720' % bc)
+            rows = [(c.get('corruptionName') or '', c.get('medianPrice'), c.get('sampleCount', 0))
+                    for c in d.get('corruptionPrices') or []]
+            CORRUPT_FEED_CACHE[bc] = (now, rows)
+            time.sleep(0.1)
+        text = str(corruptions[0]).lower()
+        toks = set(w for w in re.findall(r'[a-z]+', text) if len(w) > 3)
+        best, best_ov = None, 0.0
+        for nm, med, n in rows:
+            if not isinstance(med, (int, float)) or med <= 0 or n < 3:
+                continue
+            ftoks = set(w for w in re.findall(r'[a-z]+', nm.lower()) if len(w) > 3)
+            if not ftoks:
+                continue
+            ov = len(toks & ftoks) / max(1, len(ftoks))
+            if ov > best_ov or (ov == best_ov and best is not None and med > best):
+                best, best_ov = med, ov
+        return best if best_ov >= 0.6 else None
+    except Exception:                                       # noqa: BLE001
+        return None
+
+
 def market_comp_ask(name, pct=25, exclude_uid=None):
     """Live market comps by exact item name: what OTHER sellers ask right now
     (live listings only, priced > 0, newest first, the owner's OWN listings
@@ -1206,12 +1264,13 @@ def scan_once(token, env, tab_filter=None, full=False):
             it2['unpriced'] = True
         it2['sale_ok'] = server_priced
         priced_items.append(it2)
-    # steal baseline (user rule 2026-11-18: everything priced just under
-    # Fair): the POSTING price = the median ask of OTHER sellers (ours
-    # excluded) x the discount (default 0.87 = the bottom edge of Fair).
-    # The MINIMUM ask was measured to overshoot into bait/mistake territory
-    # (a Shaftstop listing at 0.03 vs a 0.43 market median) - the median is
-    # the Fair reference, the discount puts us just under it.
+    # steal baseline (v0.4.3): every posting price is HARD 2-decimal (x.xx —
+    # 4-decimal prices read botish, measured on the live market). Corrupted
+    # uniques price from the API's OWN corruption feed: the specific
+    # corruption's median (measured: Steel Carapace High+21% and Crown of
+    # Ages High+39% came from the ask median, not the corruption's real
+    # clearing price). Everything else: the median ask of OTHER sellers
+    # (ours excluded) x the discount.
     owner_uid = cache.get('user_id')
     discount = float(env.get('GG_FAIR_DISCOUNT', '0.87'))
     n_base = 0
@@ -1219,33 +1278,33 @@ def scan_once(token, env, tab_filter=None, full=False):
         nm = it.get('name')
         if not nm or it.get('quality') in ('Rare', 'Craft') or it.get('hr') is None:
             continue
-        comp = market_comp_ask(nm, exclude_uid=owner_uid)
-        if not comp:
-            continue
         qty = it.get('qty') or 1
-        # GEAR vs NON-GEAR split (user rule 2026-11-18, measured: Warshrike /
-        # Flying Axe are category 'weapon' — GEAR even though throwing
-        # weapons carry a quantity; the quantity is the throw/ammo count).
-        # GEAR: priced as the item it is — the median ask of the same weapon
-        # x discount, posted as the TOTAL, never unit-divided.
-        # NON-GEAR stacks (category misc — panel mats): the fair reference is
-        # per-UNIT (other stacks come in different sizes), posted per-unit.
-        cat = ((it.get('raw') or {}).get('category') or '').strip().lower()
+        raw = it.get('raw') or {}
+        cat = (raw.get('category') or '').strip().lower()
         is_gear = cat in ('weapon', 'armor') or qty <= 1
-        if is_gear:
-            target = round(comp['med'] * discount, 4)      # total, posting format
-            it['post_price'] = target
-            if it['hr'] > target:
-                n_base += 1
-        else:
-            fair_unit = comp['unit_med']
-            if fair_unit is None:
+        target = None                                   # total-stack posting price
+        if it.get('quality') == 'Unique' and raw.get('corrupted'):
+            # corrupted unique: the API's corruption feed prices THIS corruption
+            feed = corruption_feed_price(nm, raw.get('corruptions') or [])
+            if feed is not None:
+                target = round(feed * discount, 2)
+        if target is None:
+            comp = market_comp_ask(nm, exclude_uid=owner_uid)
+            if not comp:
                 continue
-            target_unit = round(fair_unit * discount, 4)
-            it['post_price'] = target_unit                 # unit, posting format
-            if it['hr'] > target_unit * qty:
-                n_base += 1
-    print('steal baseline: %d item(s) posted under Fair (x%.2f discount; gear total-priced, misc stacks unit-priced)' % (n_base, discount))
+            if is_gear:
+                fair = comp['med']                      # median ask of others = Fair
+                target = round(fair * discount, 2)      # total, posting format
+            else:
+                fair_unit = comp['unit_med']
+                if fair_unit is None:
+                    continue
+                target = round(fair_unit * discount, 2)  # unit, posting format
+        it['post_price'] = target
+        judged = target * (qty if (not is_gear and qty > 1) else 1)
+        if it['hr'] > judged:
+            n_base += 1
+    print('steal baseline: %d item(s) posted under Fair (x%.2f discount, 2-decimal hard)' % (n_base, discount))
     # gate 2 (v0.4.2): price floor 0.25 HR, with the API-NATIVE volume
     # exception - the server's own sampleCount per valuation line. An item
     # under the floor still lists when its line's sample count ranks in the
@@ -1710,9 +1769,10 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
 
     def note_for(r):
         it = r['item']
-        if obo or True:
-            return strict_note(it, obo=obo)
-        return 'wts %s' % it.get('name', '')
+        qty = it.get('qty') or 1
+        # user rule 2026-11-18: the listing description carries ONLY the
+        # stack amount — no stat text (the game shows the stats itself)
+        return ('%dx o.b.o.' % qty) if qty > 1 else 'o.b.o.'
 
     # 1. delist: listings whose item left the stash OR fell out of the top N
     if do_delist and user_id:
@@ -1766,11 +1826,16 @@ def run_autolist(env, rows, max_posts=10, include_check=False, obo=True, do_deli
                 else round(want_total, 2)
         # self-repricing: a live listing whose price drifted >10% from the
         # current model (dirt-cheap sub-1HR / percentile / comp refresh) is
-        # delisted now and reposted at the new price within the same tick
+        # delisted now and reposted at the new price within the same tick.
+        # A listing not on the 2-decimal grid (0.6525-style) ALWAYS reprices
+        # (user rule: strict x.xx pricing, never botish 4-decimals).
         if iid in own and do_delist:
             lid, cur = own[iid]
+            needs_format_fix = isinstance(cur, (int, float)) and round(cur, 2) != round(cur, 2) + 1e-9 \
+                and abs(cur - round(cur, 2)) > 1e-9
             if isinstance(cur, (int, float)) and cur > 0 and \
-                    abs(cur - post_price) > max(0.02, 0.10 * post_price) and \
+                    (needs_format_fix or
+                     abs(cur - post_price) > max(0.02, 0.10 * post_price)) and \
                     actions < max_actions:
                 st = delete_listing(token, lid)
                 actions += 1
