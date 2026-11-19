@@ -4227,10 +4227,12 @@ ItemDisplay[7m7 !RW !UNI !SHOP]: %NAME%{%NAME%%CL%%TAN%Ogre Maul - S14 Madness 4
 // signal the game exposes before ID. Gold tag = pick up and ID. ====
 ItemDisplay[MAG cm3 ILVL>84]: %GOLD%[85+] %NAME%{%NAME%%CL%%GOLD%ILVL 85+ GC - potential skiller / top affix%CL%%GRAY%market: 138/152 solds at ILVL 85+}
 ItemDisplay[MAG cm1 ILVL>84]: %GOLD%[85+] %NAME%{%NAME%%CL%%GOLD%ILVL 85+ SC - top affix tiers unlock%CL%%GRAY%market: 39/43 solds at ILVL 85+}
+ItemDisplay[MAG cm3 ILVL>84]: %GOLD%[85+] %NAME%{%NAME%%CL%%GOLD%ILVL 85+ GC - potential skiller / top affix%CL%%GRAY%market: 138/152 solds at ILVL 85+}
 ItemDisplay[MAG cm2 ILVL>94]: %GOLD%[95+] %NAME%{%NAME%%CL%%GOLD%ILVL 95+ LC - top-tier zone (63% of solds)%CL%%GRAY%market: LCs sell at ILVL 95+}
+ItemDisplay[MAG cm3 ILVL>84]: %GOLD%[85+] %NAME%{%NAME%%CL%%GOLD%ILVL 85+ GC - potential skiller / top affix%CL%%GRAY%market: 138/152 solds at ILVL 85+}
+// ==== GG CRAFT-BASE VISIBILITY (eth Ogre Axe 7o7 / War Pike 7p7 - all strictnesses) ====
+ItemDisplay[(7o7 OR 7p7) ETH NMAG !RW !SHOP ILVL>84]: %NAME%{%NAME%%CL%%TAN%Ethereal polearm craft base (both verified trading on the market)%CL%%GRAY%always visible}
 ItemDisplay[MAG jew ILVL>84]: %GOLD%[85+] %NAME%{%NAME%%CL%%GOLD%ILVL 85+ Jewel - max affix tiers unlock%CL%%GRAY%market: 143/148 solds at ILVL 85+}
-ItemDisplay[MAG amu ILVL>84]: %GOLD%[85+] %NAME%{%NAME%%CL%%GOLD%ILVL 85+ Amulet - top affix tiers unlock%CL%%GRAY%market: 103/104 solds at ILVL 85+}
-ItemDisplay[MAG rin ILVL>84]: %GOLD%[85+] %NAME%{%NAME%%CL%%GOLD%ILVL 85+ Ring - top affix tiers unlock%CL%%GRAY%market: 50/53 solds at ILVL 85+}
 // ==== GG SLAM GROUND VISIBILITY (v0.3.0) - slam targets never hidden, any strictness ====
 // ==== GG CRAFT BASE TARGETS (measured top solds, 7d, 2026-11-18) ====
 

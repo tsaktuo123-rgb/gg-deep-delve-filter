@@ -1210,6 +1210,15 @@ def scan_once(token, env, tab_filter=None, full=False):
         rare_key = (loc.get('stash_page'), pos.get('column'), pos.get('row'))
         nw_line = nw_lines.get(str(raw.get('hash') or ''))
         server_priced = False
+        # user rule 2026-11-19: ALL stackable items (qty > 1 — weapon stacks,
+        # panel stacks, everything) are removed from the watcher's pricing and
+        # listings entirely. The server's own net worth still counts them.
+        if (it.get('qty') or 1) > 1:
+            it2['hr'] = None
+            it2['unpriced'] = True
+            it2['stackable'] = True
+            priced_items.append(it2)
+            continue
         if q in ('Rare', 'Craft'):
             # the server's own rare appraisal (rank + market band); the
             # synthesized batch is fallback coverage for rares it skipped
