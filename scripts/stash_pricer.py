@@ -1296,15 +1296,25 @@ def scan_once(token, env, tab_filter=None, full=False):
         is_gear = cat in ('weapon', 'armor') or qty <= 1
         target = None                                   # total-stack posting price
         if it.get('quality') in ('Rare', 'Craft'):
-            # rares/crafts: the ONLY honest price is what this exact type
-            # (base+quality+corruption state) SOLD for — >=2 priced solds
-            # required. No priced-sale evidence -> not listed (owner rule:
-            # no unmeasured prices on the market).
+            # rares/crafts: the SOLD corpus GATES the type (>=2 priced solds
+            # of this base+quality+corruption state = the type sells), and the
+            # SERVER's per-item appraisal PRICES it (rank+band differ by
+            # stats). The pooled sold median was measured wrong: it priced
+            # every jewel 0.48 regardless of stats (junk jewels at High+433%
+            # while their per-item model value is 0.11).
             sc = sold_comps(it, window_days=int(env.get('GG_SALE_WINDOW_DAYS', '7')))
             it['sold'] = sc
             if sc['priced'] >= 2 and sc['median']:
-                target = round(sc['median'] * discount, 2)
-                it['confidence'] = 'sold-median(%d sold, %d priced)' % (sc['count'], sc['priced'])
+                band_val = it.get('hr')
+                if isinstance(band_val, (int, float)) and band_val > 0:
+                    # per-item stat-aware price: the server's own appraisal
+                    it['post_price'] = round(band_val * discount, 2)
+                    it['confidence'] = 'server-per-item(x%.2f; type sold n=%d, priced=%d)' % (
+                        discount, sc['count'], sc['priced'])
+                else:
+                    # no band: the type's sold median is the only anchor
+                    it['post_price'] = round(sc['median'] * discount, 2)
+                    it['confidence'] = 'sold-median(%d sold, %d priced)' % (sc['count'], sc['priced'])
             else:
                 it['hr'] = None
                 it['unpriced'] = True
