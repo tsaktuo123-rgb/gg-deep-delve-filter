@@ -1329,7 +1329,12 @@ def scan_once(token, env, tab_filter=None, full=False):
                 target = round(fair_unit * discount, 2)  # unit, posting format
         it['post_price'] = target
         judged = target * (qty if (not is_gear and qty > 1) else 1)
-        if it['hr'] > judged:
+        if it['hr'] is None:
+            # a rare whose band was missing but the sold corpus has evidence:
+            # the sold median IS its value now
+            it['hr'] = target
+            n_base += 1
+        elif it['hr'] > judged:
             n_base += 1
     print('steal baseline: %d item(s) posted under Fair (x%.2f discount, 2-decimal hard)' % (n_base, discount))
     # gate 2 (v0.4.2): price floor 0.25 HR, with the API-NATIVE volume
