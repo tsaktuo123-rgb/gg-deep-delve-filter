@@ -550,9 +550,11 @@ def fetch_sold_market(max_pages=SOLD_MAX_PAGES, owner_user_id=None):
             rows.append({
                 'name': (it.get('name') or '').strip(),
                 'base': ((it.get('base') or {}).get('name') or '').strip(),
+                'base_id': ((it.get('base') or {}).get('id') or '').strip(),
                 'quality': (it.get('quality') or {}).get('name') or '',
                 'cat': (it.get('category') or '').strip().lower(),
                 'qty': it.get('quantity') or 1,
+                'ilvl': it.get('item_level'),
                 'sockets': it.get('socketed_count') or 0,
                 'eth': bool(it.get('is_ethereal')),
                 'corrupted': bool(it.get('corrupted')),

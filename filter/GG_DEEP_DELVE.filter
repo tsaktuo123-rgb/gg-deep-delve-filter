@@ -4221,6 +4221,16 @@ ItemDisplay[!ID NMAG !RW CHEST ELT !ETH (SOCK=0 OR SOCK=3 OR SOCK=4)]: %GG_TIER1
 ItemDisplay[ID (MAG OR RARE OR CRAFT) !RW CHEST ELT ILVL>84]: %GG_TIER1_FX% %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%TAN%Slam target: +2 All Skills / 4 Sockets / PDR%CL%%GRAY%S14 meta: eth 4os = Fortitude, merc armor}
 ItemDisplay[!ID MAG !RW CHEST ELT ILVL>84]: %GG_TIER1_FX% %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%TAN%ALVL 87+: slam candidate (+2 skills / 4os / PDR)%CL%%GRAY%Keep for Season 14 corruption rolls}
 ItemDisplay[7m7 !RW !UNI !SHOP]: %NAME%{%NAME%%CL%%TAN%Ogre Maul - S14 Madness 4os base%CL%%GRAY%eth = top half | always visible (eth + non-eth)}
+// ==== GG PICKUP POTENTIAL (v0.4.3, measured from 7d solds: the market buys
+// ILVL 85+ for these classes — jewels 143/148 solds, GCs 138/152, amulets
+// 103/104; Large Charms cluster at 95+). Pre-ID potential: ILVL is the only
+// signal the game exposes before ID. Gold tag = pick up and ID. ====
+ItemDisplay[MAG cm3 ILVL>84]: %GOLD%[85+] %NAME%{%NAME%%CL%%GOLD%ILVL 85+ GC - potential skiller / top affix%CL%%GRAY%market: 138/152 solds at ILVL 85+}
+ItemDisplay[MAG cm1 ILVL>84]: %GOLD%[85+] %NAME%{%NAME%%CL%%GOLD%ILVL 85+ SC - top affix tiers unlock%CL%%GRAY%market: 39/43 solds at ILVL 85+}
+ItemDisplay[MAG cm2 ILVL>94]: %GOLD%[95+] %NAME%{%NAME%%CL%%GOLD%ILVL 95+ LC - top-tier zone (63% of solds)%CL%%GRAY%market: LCs sell at ILVL 95+}
+ItemDisplay[MAG jew ILVL>84]: %GOLD%[85+] %NAME%{%NAME%%CL%%GOLD%ILVL 85+ Jewel - max affix tiers unlock%CL%%GRAY%market: 143/148 solds at ILVL 85+}
+ItemDisplay[MAG amu ILVL>84]: %GOLD%[85+] %NAME%{%NAME%%CL%%GOLD%ILVL 85+ Amulet - top affix tiers unlock%CL%%GRAY%market: 103/104 solds at ILVL 85+}
+ItemDisplay[MAG rin ILVL>84]: %GOLD%[85+] %NAME%{%NAME%%CL%%GOLD%ILVL 85+ Ring - top affix tiers unlock%CL%%GRAY%market: 50/53 solds at ILVL 85+}
 // ==== GG SLAM GROUND VISIBILITY (v0.3.0) - slam targets never hidden, any strictness ====
 // ==== GG CRAFT BASE TARGETS (measured top solds, 7d, 2026-11-18) ====
 
