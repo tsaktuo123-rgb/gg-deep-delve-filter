@@ -1315,11 +1315,6 @@ def scan_once(token, env, tab_filter=None, full=False):
                 it['unpriced'] = True
                 it['sale_ok'] = False
                 continue
-            else:
-                it['hr'] = None
-                it['unpriced'] = True
-                it['sale_ok'] = False
-                continue
         if it.get('quality') == 'Unique' and raw.get('corrupted'):
             # corrupted unique: the API's corruption feed prices THIS corruption
             feed = corruption_feed_price(nm, raw.get('corruptions') or [])
