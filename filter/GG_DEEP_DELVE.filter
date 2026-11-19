@@ -4222,16 +4222,7 @@ ItemDisplay[ID (MAG OR RARE OR CRAFT) !RW CHEST ELT ILVL>84]: %GG_TIER1_FX% %NAM
 ItemDisplay[!ID MAG !RW CHEST ELT ILVL>84]: %GG_TIER1_FX% %NAME%{%NAME%%CL%%GG_PRICE_HEADER%%CL%%TAN%ALVL 87+: slam candidate (+2 skills / 4os / PDR)%CL%%GRAY%Keep for Season 14 corruption rolls}
 ItemDisplay[7m7 !RW !UNI !SHOP]: %NAME%{%NAME%%CL%%TAN%Ogre Maul - S14 Madness 4os base%CL%%GRAY%eth = top half | always visible (eth + non-eth)}
 // ==== GG SLAM GROUND VISIBILITY (v0.3.0) - slam targets never hidden, any strictness ====
-ItemDisplay[!ID MAG !RW !SHOP (WEAPON OR amu OR rin OR CIRC) ILVL>84]: %GG_SLAM_GRAB% %NAME%{%NAME%%CL%%TAN%Corruption slam target (WSS): +2 skills / sockets / res%CL%%GRAY%ALVL 87+ - never hidden}
-ItemDisplay[!ID MAG !RW !SHOP (cm1 OR cm2 OR cm3 OR jew) ILVL>84]: %GG_SLAM_GRAB% %NAME%{%NAME%%CL%%TAN%Charm/Jewel ILVL 84+ - top-volume solds (measured: 144 GC / 104 jewel / 26 SC weekly)%CL%%GRAY%never hidden}
 // ==== GG CRAFT BASE TARGETS (measured top solds, 7d, 2026-11-18) ====
-ItemDisplay[!RW !UNI !SET !SHOP (uit OR mbt OR plt OR ci3 OR hbl OR xlg OR 9p9 OR 6s7) ILVL>84]: %GG_SLAM_GRAB% %NAME%{%NAME%%CL%%TAN%Measured top-selling craft/corruption base (Monarch 3.0 / Chain Boots 1.75 / Plate Mail 1.5 / Diadem 1.5)%CL%%GRAY%never hidden}
-ItemDisplay[!RW !UNI !SET !SHOP (glv OR xui) ETH ILVL>84]: %GG_SLAM_GRAB% %NAME%{%NAME%%CL%%TAN%Ethereal craft base (Glaive/Ghost Armor sold 1.5)%CL%%GRAY%never hidden}
-ItemDisplay[!RW !UNI !SET !SHOP (7o7 OR 7p7) ETH ILVL>84]: %GG_SLAM_GRAB% %NAME%{%NAME%%CL%%TAN%Ethereal Ogre Axe / War Pike - polearm craft base (both verified trading)%CL%%GRAY%never hidden}
-ItemDisplay[NMAG !RW !SHOP SHIELD SOCK=4]: %GG_SLAM_GRAB% %NAME%{%NAME%%CL%%TAN%4os Shield - Spirit/Phoenix base%CL%%GRAY%Monarch = top half - never hidden}
-ItemDisplay[NMAG !RW !SHOP (clw OR 9lw OR 7lw) SOCK=3]: %GG_SLAM_GRAB% %NAME%{%NAME%%CL%%TAN%3os Claw - Chaos base%CL%%GRAY%never hidden}
-ItemDisplay[NMAG !RW !SHOP WEAPON ELT ETH SOCK=0]: %GG_SLAM_GRAB% %NAME%{%NAME%%CL%%TAN%Ethereal elite weapon - Larzuk slam to RW base%CL%%GRAY%never hidden}
-ItemDisplay[(HELM OR CHEST) RARE ILVL>84 !ID !UNI !SET !RW !SHOP]: %GG_SLAM_GRAB% %NAME%{%NAME%%CL%%TAN%Rare helm/chest ILVL 84+ - priced by the watcher%CL%%GRAY%never hidden}
 
 ItemDisplay[!SHOP FILTLVL>1 NMAG !RW WEAPON !ETH]:%NOTIFY-DEAD%{%NAME%}
 ItemDisplay[!SHOP FILTLVL>2 NMAG !RW WEAPON]:%NOTIFY-DEAD%{%NAME%}
