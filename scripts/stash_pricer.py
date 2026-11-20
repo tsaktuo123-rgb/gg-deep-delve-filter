@@ -491,12 +491,57 @@ SOLD_CACHE = {'rows': None, 'ts': 0}
 OWNER_USER_ID = None
 
 
+def _extract_top_stats(modifiers, max_stats=3):
+    """Extract top stats from a sold listing's modifiers for stat-aware comps.
+    Returns list of (stat_name, value) tuples, prioritized by:
+    1. Known high-value stat keys (ED, +skills, AR%, resist all, etc.)
+    2. Then by absolute value descending."""
+    if not modifiers:
+        return []
+    # High-value stat keys that drive price (PD2 modifier names)
+    priority_stats = {
+        'maxdamage_percent',      # ED - #1 price driver for weapons/jewels
+        'item_addskill_tab',      # +skill tab - #1 for charms/amulets
+        'item_addclassskills',    # +class skills
+        'item_allskills',         # +all skills
+        'item_tohit_percent',     # AR%
+        'item_fastercast_rate',   # FCR (rare)
+        'item_fasterhit_recovery',# FHR
+        'item_fasterblock_rate',  # FBR
+        'item_fasterrun_walk',    # FRW
+        'all_resist',             # All resist
+        'maxhp',                  # Life
+        'maxmana',                # Mana
+        'strength', 'dexterity', 'vitality', 'energy',  # Attributes
+        'item_magicbonus',        # MF
+        'item_goldbonus',         # Gold find
+        'item_armor_percent',     # Defense %
+        'max_damage', 'min_damage',  # Flat damage
+        'lightresist', 'fireresist', 'coldresist', 'poisonresist',
+        'item_attackertakesdamage',
+        'item_openwounds',
+        'item_crushingblow',
+        'item_deadlystrike',
+    }
+    scored = []
+    for m in modifiers:
+        name = m.get('name')
+        vals = m.get('values') or [0]
+        val = vals[0] if vals else 0
+        if not name or val == 0:
+            continue
+        priority = 0 if name in priority_stats else 1
+        scored.append((priority, -abs(val), name, val))
+    scored.sort()
+    return [(name, val) for _, _, name, val in scored[:max_stats]]
+
+
 def fetch_sold_market(max_pages=SOLD_MAX_PAGES, owner_user_id=None):
     """The market's SOLD corpus (accepted offers), newest first. Rows carry
     name, base, quality, sockets, eth, corrupted, hr_price (only when the
     listing was PRICED - o.b.o. solds prove sellability but not the amount),
-    seller_id (to exclude own sales from evidence), and updated_at.
-    Cached to sold_market.json + memory (30 min TTL)."""
+    seller_id (to exclude own sales from evidence), top_stats (for S3 stat-aware comps),
+    and updated_at. Cached to sold_market.json + memory (30 min TTL)."""
     global OWNER_USER_ID
     if owner_user_id is not None:
         OWNER_USER_ID = owner_user_id
@@ -547,6 +592,8 @@ def fetch_sold_market(max_pages=SOLD_MAX_PAGES, owner_user_id=None):
             if OWNER_USER_ID and seller_id == OWNER_USER_ID:
                 owner_sold_count += 1
                 continue
+            # S3: extract top stats for stat-aware sold comps
+            top_stats = _extract_top_stats(it.get('modifiers'))
             rows.append({
                 'name': (it.get('name') or '').strip(),
                 'base': ((it.get('base') or {}).get('name') or '').strip(),
@@ -561,6 +608,7 @@ def fetch_sold_market(max_pages=SOLD_MAX_PAGES, owner_user_id=None):
                 'hr': l.get('hr_price') if isinstance(l.get('hr_price'), (int, float)) else None,
                 'at': (l.get('updated_at') or '')[:10],
                 'seller_id': seller_id,
+                'top_stats': top_stats,  # S3: [(stat_name, value), ...]
             })
         if len(data) < 100:
             break
@@ -638,6 +686,82 @@ def sold_comps(item, window_days=7):
         'median_hr': median,
         'last_sold': max((r.get('at') or '') for r in hits) if hits else '',
         'unit_median': unit_median,
+    }
+    
+    return {'count': len(hits), 'priced': len(priced_named) + len(priced_typed),
+            'median': median, 'unit_median': unit_median,
+            'top_decile': top_decile_named,
+            'vol_name': len(named), 'vol_type': len(typed), 'vol_cat': len(cat_rows),
+            'tier': tier,
+            'last': max((r.get('at') or '') for r in hits) if hits else '',
+            'provenance': provenance}
+
+
+# ---- S3: Stat-aware sold comps from enriched corpus (v0.5.0) ----
+def sold_comps_stat_aware(item, window_days=7, stat_conditions=None):
+    """S3: Compute sold comps from enriched corpus with stat filtering.
+    Uses the `top_stats` field in sold_market.json rows for client-side filtering.
+    This avoids extra API calls for the sold side of Tier A.
+    
+    stat_conditions: list of (stat_name, min_value) tuples to match.
+    Returns same structure as sold_comps() but filtered by stats."""
+    rows = fetch_sold_market()
+    empty = {'count': 0, 'priced': 0, 'median': None, 'vol_name': 0, 'vol_type': 0,
+             'vol_cat': 0, 'tier': 'none', 'last': '', 'provenance': {}}
+    if not rows or not stat_conditions:
+        return empty
+    q = item.get('quality') or ''
+    nm = (item.get('name') or '').strip().lower()
+    bn = (item.get('base_name') or '').strip().lower()
+    cat = ((item.get('raw') or {}).get('category') or '').strip().lower()
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=window_days)).strftime('%Y-%m-%d')
+
+    def in_window(r):
+        return (r.get('at') or '') >= cutoff
+
+    def matches_stats(r):
+        """Check if sold row's top_stats match all stat_conditions."""
+        row_stats = r.get('top_stats') or []
+        row_stat_dict = dict(row_stats)
+        for stat_name, min_val in stat_conditions:
+            if row_stat_dict.get(stat_name, 0) < min_val:
+                return False
+        return True
+
+    named = [r for r in rows if (r.get('name') or '').strip().lower() == nm and in_window(r) and matches_stats(r)]
+    typed = []
+    if q not in ('Unique', 'Set', 'Currency'):
+        item_corr = bool((item.get('raw') or {}).get('corrupted'))
+        typed = [r for r in rows if (r.get('base') or '').strip().lower() == bn
+                 and (r.get('quality') or '') == q
+                 and r.get('corrupted') == item_corr
+                 and in_window(r) and matches_stats(r)]
+    cat_rows = [r for r in rows if (r.get('cat') or '') == cat and in_window(r) and matches_stats(r)] if cat else []
+    priced_named = [r['hr'] for r in named if isinstance(r.get('hr'), (int, float)) and r['hr'] > 0]
+    median = round(statistics.median(priced_named), 4) if len(priced_named) >= 2 else None
+    unit_median = None
+    top_decile_named = round(priced_named[min(len(priced_named) - 1, int(len(priced_named) * 0.9))], 4) \
+        if len(priced_named) >= 2 else None
+    if median is not None and (item.get('qty') or 1) > 1:
+        units = sorted(r['hr'] / max(1, r.get('qty') or 1) for r in named
+                       if isinstance(r.get('hr'), (int, float)) and r['hr'] > 0)
+        unit_median = round(statistics.median(units), 4) if len(units) >= 2 else None
+    priced_typed = []
+    if median is None:
+        priced_typed = [r['hr'] for r in typed if isinstance(r.get('hr'), (int, float)) and r['hr'] > 0]
+        median = round(statistics.median(priced_typed), 4) if len(priced_typed) >= 2 else None
+    tier = 'name-stat' if named else ('type-stat' if typed else ('cat-stat' if cat_rows else 'none'))
+    hits = named or typed or cat_rows
+    
+    provenance = {
+        'tier': tier,
+        'name': nm if tier == 'name-stat' else (bn if tier == 'type-stat' else cat),
+        'total_sold': len(hits),
+        'priced_sold': len(priced_named) + len(priced_typed),
+        'median_hr': median,
+        'last_sold': max((r.get('at') or '') for r in hits) if hits else '',
+        'unit_median': unit_median,
+        'stat_conditions': stat_conditions,
     }
     
     return {'count': len(hits), 'priced': len(priced_named) + len(priced_typed),
@@ -749,6 +873,134 @@ def market_comp_ask(name, pct=25, exclude_uid=None):
         COMP_CACHE[name] = (time.time(), result)
         time.sleep(0.05)                                # polite per fresh query
         return result
+
+
+# ---- S1: Stat-aware market comps (v0.5.0) ----
+STAT_COMP_CACHE = {}
+STAT_COMP_TTL = 600  # 10 min cache for stat queries (more expensive)
+
+def _build_stat_query(stat_conditions, sold=False, priced_only=True, limit=50):
+    """Build the market query for the LONE stat-conditioned filter.
+
+    MEASURED 2026-11-19: the PD2 market's Feathers adapter rejects COMBINED
+    nested item.* paths — base+quality+corrupted together returns 0 rows, and
+    so does any stat query stacked with other item.* filters. A SINGLE nested
+    filter works (measured: the lone ED>=20 stat filter returns 50 rows).
+    So this query carries ONLY the stat conditions; base/quality/corrupted
+    are filtered CLIENT-SIDE by the caller."""
+    params = {
+        'type': 'item',
+        'is_ladder': 'true',
+        'is_hardcore': 'false',
+        '$limit': str(limit),
+    }
+    params['$sort[%s]' % ('updated_at' if sold else 'bumped_at')] = '-1'
+    if sold:
+        params['accepted_offer_id[$ne]'] = 'null'
+    else:
+        params['accepted_offer_id'] = 'null'
+    if priced_only:
+        params['hr_price[$gt]'] = '0'
+    for i, (stat_name, min_val) in enumerate(stat_conditions[:2]):
+        params['item.modifiers[$all][%d][$elemMatch][name]' % i] = stat_name
+        params['item.modifiers[$all][%d][$elemMatch][values.0][$gte]' % i] = str(min_val)
+    return urllib.parse.urlencode(params)
+
+
+def market_stat_comps(base_name, quality, corrupted, stat_conditions, sold=False, exclude_uid=None, limit=50):
+    """Tier A: stat-aware comps via the LONE stat-conditioned market query +
+    CLIENT-SIDE base/quality/corruption filtering (measured 2026-11-19: the
+    server rejects combined nested item.* paths — a single nested filter
+    works, so the query carries only the stat conditions and this function
+    filters the pages locally). Returns dict with min/p25/med/n/unit_med/
+    top_decile or None below 2 priced comps.
+
+    stat_conditions: list of (stat_name, min_value), max 2.
+    sold: query sold listings instead of live ones."""
+    if not base_name or not stat_conditions:
+        return None
+    cache_key = ('sold' if sold else 'live', base_name, quality, str(corrupted), tuple(stat_conditions))
+    cached = STAT_COMP_CACHE.get(cache_key)
+    if cached and time.time() - cached[0] < STAT_COMP_TTL:
+        return cached[1]
+    bn = (base_name or '').strip().lower()
+    pages = 3                                         # 3x50 = up to 150 rows per comp set
+    pairs, n_seen = [], 0
+    for page in range(pages):
+        q = _build_stat_query(stat_conditions, sold=sold, priced_only=True, limit=50)
+        url = PD2_API_BASE + '/market/listing?' + q + \
+            ('&$skip=%d' % (page * 50) if page else '')
+        try:
+            _, d = http_json(url)
+        except Exception:                           # noqa: BLE001
+            break
+        data = d.get('data') or []
+        n_seen += len(data)
+        for l in data:
+            it = l.get('item') or {}
+            b = (it.get('base') or {}).get('name') or ''
+            hr = l.get('hr_price')
+            if not isinstance(hr, (int, float)) or hr <= 0:
+                continue
+            if exclude_uid and str(l.get('user_id') or '') == str(exclude_uid):
+                continue
+            if (b.strip().lower() != bn or
+                    (it.get('quality') or {}).get('name') != quality or
+                    bool(it.get('corrupted')) != bool(corrupted)):
+                continue                            # client-side class match
+            pairs.append((hr, it.get('quantity') or 1))
+        if len(data) < 50:
+            break
+        time.sleep(0.2)                             # polite between pages
+    if len(pairs) < 2:
+        if pairs:
+            result = {'min': round(min(p[0] for p in pairs), 4), 'n': len(pairs)}
+            STAT_COMP_CACHE[cache_key] = (time.time(), result)
+        return None
+    prices = sorted(p[0] for p in pairs)
+    units = sorted(p[0] / max(1, p[1]) for p in pairs)
+    top_decile_idx = max(0, len(prices) - 1 - int(len(prices) * 0.1))
+    result = {'min': round(prices[0], 4),
+              'p25': round(prices[max(0, len(prices) // 4)], 4),
+              'med': round(prices[len(prices) // 2], 4),
+              'n': len(prices),
+              'unit_med': round(statistics.median(units), 4),
+              'top_decile': round(prices[top_decile_idx], 4)}
+    STAT_COMP_CACHE[cache_key] = (time.time(), result)
+    time.sleep(0.15)  # polite per fresh stat query
+    return result
+
+
+def get_item_stat_signature(item, appraisal=None):
+    """Extract the stat signature for Tier A queries from server appraisal or item mods.
+    Returns list of (stat_name, min_value) tuples (max 2) for market query.
+    Priority: server appraisal stars >= 2, then top mods by value."""
+    # Priority stat keys that drive price
+    price_drivers = {
+        'maxdamage_percent', 'item_addskill_tab', 'item_addclassskills', 'item_allskills',
+        'item_tohit_percent', 'item_fastercast_rate', 'item_fasterhit_recovery',
+        'item_fasterblock_rate', 'item_fasterrun_walk', 'all_resist', 'maxhp', 'maxmana',
+        'strength', 'dexterity', 'vitality', 'energy', 'item_magicbonus', 'item_goldbonus',
+        'item_armor_percent', 'max_damage', 'min_damage', 'item_attackertakesdamage',
+        'item_openwounds', 'item_crushingblow', 'item_deadlystrike',
+    }
+    # 1. Try server appraisal stats with stars >= 2
+    if appraisal:
+        stars = [(s.get('key'), (s.get('value') or 0)) for s in appraisal.get('stats', [])
+                 if isinstance(s, dict) and (s.get('stars') or 0) >= 2]
+        if stars:
+            return [(k, v) for k, v in stars[:2] if k in price_drivers]
+    # 2. Fallback: item's own modifiers (for uniques/sets/magic)
+    mods = item.get('modifiers') or []
+    scored = []
+    for m in mods:
+        name = m.get('name')
+        vals = m.get('values') or [0]
+        val = vals[0] if vals else 0
+        if name in price_drivers and val > 0:
+            scored.append((-abs(val), name, val))
+    scored.sort()
+    return [(name, val) for _, name, val in scored[:2]]
 
 
 def networth_sync(token, account, is_ladder=True, is_hardcore=False):
@@ -1282,13 +1534,15 @@ def scan_once(token, env, tab_filter=None, full=False):
             it2['unpriced'] = True
         it2['sale_ok'] = server_priced
         priced_items.append(it2)
-    # steal baseline (v0.4.3): every posting price is HARD 2-decimal (x.xx —
-    # 4-decimal prices read botish, measured on the live market). Corrupted
-    # uniques price from the API's OWN corruption feed: the specific
-    # corruption's median (measured: Steel Carapace High+21% and Crown of
-    # Ages High+39% came from the ask median, not the corruption's real
-    # clearing price). Everything else: the median ask of OTHER sellers
-    # (ours excluded) x the discount.
+    # steal baseline (v0.5.0): stat-aware two-tier pricing with rank gating.
+    # S2: Only items with server appraisal 'keep' or rank >= 0.9 get Tier-A stat queries.
+    # S1: Two-tier comp search:
+    #   Tier A (precise): stat-conditioned market query (LIVE asks + SOLD solds from corpus)
+    #   Tier B (fallback): base+quality+corruption type pool (existing sold_comps)
+    # Price = first tier with >=2 priced solds -> its sold median;
+    #         else Tier-A ask median x GG_FAIR_DISCOUNT (0.87);
+    #         else Tier-B sold median x 0.87; else server per-item value.
+    # Hard 2-decimal rounding on every posting price.
     owner_uid = cache.get('user_id')
     discount = float(env.get('GG_FAIR_DISCOUNT', '0.87'))
     n_base = 0
@@ -1300,42 +1554,95 @@ def scan_once(token, env, tab_filter=None, full=False):
         is_gear = cat in ('weapon', 'armor') or qty <= 1
         target = None                                   # total-stack posting price
         if it.get('quality') in ('Rare', 'Craft'):
+            ap = it.get('appraisal') or {}
+            rank = ap.get('rank')
+            verdict = ap.get('verdict')
+            # S2: Rank gating - only 'keep' or rank >= 0.9 get Tier-A stat queries
+            gets_tier_a = (verdict == 'keep' and isinstance(rank, (int, float)) and rank >= 0.9)
+            
+            # Base Tier B comps (always computed for gate/fallback)
             sc = sold_comps(it, window_days=int(env.get('GG_SALE_WINDOW_DAYS', '7')))
             it['sold'] = sc
-            it['eff_vol'] = sc['count']                 # the type's sold volume = the API-native gate-2 volume
-            if sc['priced'] >= 2 and sc['median']:
-                band_val = it.get('hr')
-                if isinstance(band_val, (int, float)) and band_val > 0:
-                    # per-item stat-aware price: the server's own appraisal
-                    target = round(band_val * discount, 2)
-                    it['confidence'] = 'server-per-item(x%.2f; type sold n=%d, priced=%d)' % (
-                        discount, sc['count'], sc['priced'])
-                else:
-                    # no band: the type's sold median is the only anchor
-                    target = round(sc['median'] * discount, 2)
-                    it['confidence'] = 'sold-median(%d sold, %d priced)' % (sc['count'], sc['priced'])
-                # KEEP-RANK FLOOR (v0.4.3): a server-verified KEEP at rank >=0.9
-                # never prices below the type's top-decile sold price. Measured
-                # validation: the owner's rank-0.965 ED jewel listed at 7 HR
-                # drew immediate buyer spam - the floor was right.
-                ap = it.get('appraisal') or {}
-                rank = ap.get('rank')
-                td = sc.get('top_decile')
-                if ap.get('verdict') == 'keep' and isinstance(rank, (int, float)) \
-                        and rank >= 0.9 and isinstance(td, (int, float)) and td > 0 \
-                        and isinstance(target, (int, float)) and target < td:
-                    target = round(td, 2)
-                    it['confidence'] = 'keep-rank-floor(rank %.2f, top-decile %.2f)' % (rank, td)
+            it['eff_vol'] = sc['count']
+            
+            # Tier B sold median (fallback)
+            tier_b_median = sc['median'] if sc['priced'] >= 2 else None
+            tier_b_top_decile = sc.get('top_decile')
+            
+            # Tier A: Stat-aware comps (only for rank-gated items)
+            tier_a_sold_median = None
+            tier_a_ask_median = None
+            tier_a_top_decile = None
+            stat_conditions = None
+            if gets_tier_a:
+                # Get stat signature from server appraisal (stars >= 2)
+                stat_conditions = get_item_stat_signature(it, ap)
+                if stat_conditions:
+                    # Tier A SOLD: client-side from enriched corpus
+                    sc_stat = sold_comps_stat_aware(it, window_days=int(env.get('GG_SALE_WINDOW_DAYS', '7')),
+                                                    stat_conditions=stat_conditions)
+                    if sc_stat['priced'] >= 2 and sc_stat['median'] is not None:
+                        tier_a_sold_median = sc_stat['median']
+                        tier_a_top_decile = sc_stat.get('top_decile')
+                        it['sold'] = sc_stat  # overwrite with stat-aware for provenance
+                    # Tier A LIVE: market API query
+                    tier_a_live = market_stat_comps(
+                        it.get('base_name') or '',
+                        it.get('quality') or '',
+                        bool(raw.get('corrupted')),
+                        stat_conditions,
+                        sold=False,
+                        exclude_uid=owner_uid
+                    )
+                    if tier_a_live and tier_a_live.get('med'):
+                        tier_a_ask_median = tier_a_live['med']
+                        tier_a_top_decile = tier_a_live.get('top_decile')
+            
+            # S1: Price selection logic
+            # 1. Tier A sold median (stat-aware, >=2 priced solds)
+            # 2. Tier B sold median (type pool, >=2 priced solds)
+            # 3. Tier A ask median x discount
+            # 4. Tier B sold median x discount
+            # 5. Server per-item band value x discount
+            final_median = None
+            confidence_tier = ''
+            
+            if tier_a_sold_median is not None:
+                final_median = tier_a_sold_median
+                confidence_tier = 'tier-A-stat-sold'
+            elif tier_b_median is not None:
+                final_median = tier_b_median
+                confidence_tier = 'tier-B-type-sold'
+            elif tier_a_ask_median is not None:
+                final_median = round(tier_a_ask_median * discount, 4)
+                confidence_tier = 'tier-A-stat-ask(x%.2f)' % discount
+            elif tier_b_median is not None:
+                final_median = round(tier_b_median * discount, 4)
+                confidence_tier = 'tier-B-type-sold(x%.2f)' % discount
+            
+            # Server per-item band value (if available) - highest confidence anchor
+            band_val = it.get('hr')
+            if isinstance(band_val, (int, float)) and band_val > 0:
+                # Server's per-item appraisal is the verified anchor
+                target = round(band_val * discount, 2)
+                it['confidence'] = 'server-per-item(x%.2f; %s)' % (discount, confidence_tier)
+            elif final_median is not None:
+                target = round(final_median, 2)
+                it['confidence'] = '%s=%.2f' % (confidence_tier, final_median)
             else:
                 it['hr'] = None
                 it['unpriced'] = True
                 it['sale_ok'] = False
                 continue
-            # HYSTERESIS (v0.4.3): the baseline moves as the market moves —
-            # without a dead-band the watcher repriced every listing every
-            # cycle (measured: the churn emptied the market to 0 live). A new
-            # target within 15% of the CURRENT posted price keeps the sticky
-            # price; only a real market move (>15%) reprices.
+            
+            # KEEP-RANK FLOOR: never below type's top-decile sold price
+            floor_price = tier_a_top_decile if tier_a_top_decile is not None else tier_b_top_decile
+            if gets_tier_a and isinstance(floor_price, (int, float)) and floor_price > 0 \
+                    and isinstance(target, (int, float)) and target < floor_price:
+                target = round(floor_price, 2)
+                it['confidence'] = 'keep-rank-floor(rank %.2f, top-decile %.2f)' % (rank, floor_price)
+            
+            # HYSTERESIS: 15% dead-band prevents churn
             stored_pp = it.get('post_price')
             if isinstance(stored_pp, (int, float)) and stored_pp > 0 and \
                     abs(target - stored_pp) <= max(0.02, 0.15 * stored_pp):
